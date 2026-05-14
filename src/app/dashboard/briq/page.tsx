@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, TrendingUp, ArrowUpRight, Trash2, Pencil, CheckCircle, Search, Download, AlertTriangle, Clock } from 'lucide-react';
+import { Plus, TrendingUp, ArrowUpRight, Trash2, Pencil, CheckCircle, Search, Download, AlertTriangle, Clock, Square, CheckSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -29,33 +29,46 @@ function ExpiryBadge({ investmentDate, termMonths }: { investmentDate: Date; ter
   return null;
 }
 
-function BriqCard({ b, onDelete, onEdit, onComplete }: {
+function BriqCard({ b, onDelete, onEdit, onComplete, selected, onToggleSelect }: {
   b: BriqInvestmentWithDetails;
   onDelete: (id: string) => void;
   onEdit: (b: BriqInvestmentWithDetails) => void;
   onComplete: (id: string) => void;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const isCompleted = b.status === 'completed';
   return (
-    <Card className={`transition-shadow cursor-pointer ${isCompleted ? 'opacity-60' : 'hover:shadow-lg'}`}>
-      <CardHeader className="pb-3">
+    <Card className={`relative transition-all cursor-pointer ${isCompleted ? 'opacity-60' : 'hover:shadow-lg'} ${selected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}>
+      {/* Checkbox overlay */}
+      <button
+        onClick={() => onToggleSelect(b.id)}
+        className="absolute top-3 left-3 z-10 rounded-md p-0.5 transition-colors hover:bg-slate-100"
+        title={selected ? 'Deseleccionar' : 'Seleccionar'}
+      >
+        {selected
+          ? <CheckSquare className="h-4 w-4 text-indigo-600" />
+          : <Square className="h-4 w-4 text-slate-300 hover:text-slate-500" />}
+      </button>
+
+      <CardHeader className="pb-3 pl-9">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-sm font-semibold leading-tight truncate">{b.name}</CardTitle>
-            <p className="text-xs text-gray-400 mt-0.5">{formatDate(b.briq.investmentDate)}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{formatDate(b.briq.investmentDate)}</p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {!isCompleted && (
               <>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-indigo-600" onClick={() => onEdit(b)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600" onClick={() => onEdit(b)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-green-600" title="Marcar como completada" onClick={() => onComplete(b.id)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" title="Marcar como completada" onClick={() => onComplete(b.id)}>
                   <CheckCircle className="h-3.5 w-3.5" />
                 </Button>
               </>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => onDelete(b.id)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500" onClick={() => onDelete(b.id)}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -69,32 +82,32 @@ function BriqCard({ b, onDelete, onEdit, onComplete }: {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Capital</span>
-          <span className="font-semibold text-gray-900">{formatCurrency(b.briq.investedAmount)}</span>
+          <span className="text-xs text-slate-500">Capital</span>
+          <span className="font-semibold text-slate-900 tabular-nums">{formatCurrency(b.briq.investedAmount)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Tasa anual</span>
+          <span className="text-xs text-slate-500">Tasa anual</span>
           <Badge variant="success" className="flex items-center gap-1">
             <ArrowUpRight className="h-3 w-3" />{b.briq.annualInterestRate}%
           </Badge>
         </div>
-        <div className="h-px bg-gray-100" />
+        <div className="h-px bg-slate-100" />
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Interés mensual</span>
-          <span className="font-semibold text-indigo-600">{formatCurrency(b.monthlyInterest)}</span>
+          <span className="text-xs text-slate-500">Interés mensual</span>
+          <span className="font-semibold text-indigo-600 tabular-nums">{formatCurrency(b.monthlyInterest)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Interés anual</span>
-          <span className="font-semibold text-green-600">{formatCurrency(b.annualInterest)}</span>
+          <span className="text-xs text-slate-500">Interés anual</span>
+          <span className="font-semibold text-emerald-600 tabular-nums">{formatCurrency(b.annualInterest)}</span>
         </div>
         {b.briq.termMonths && (
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">Plazo</span>
-            <span className="text-xs text-gray-700">{b.briq.termMonths} meses</span>
+            <span className="text-xs text-slate-500">Plazo</span>
+            <span className="text-xs text-slate-700">{b.briq.termMonths} meses</span>
           </div>
         )}
         {b.description && (
-          <p className="text-xs text-gray-400 italic pt-1">{b.description}</p>
+          <p className="text-xs text-slate-400 italic pt-1">{b.description}</p>
         )}
       </CardContent>
     </Card>
@@ -110,6 +123,9 @@ export default function BriqPage() {
   const [search, setSearch] = useState('');
   const [chartMode, setChartMode] = useState<'capital' | 'interest'>('capital');
   const [confirm, setConfirm] = useState<{ type: 'delete' | 'complete'; id: string } | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const active = briqs.filter((b) => b.status !== 'completed');
   const completed = briqs.filter((b) => b.status === 'completed');
@@ -138,6 +154,22 @@ export default function BriqPage() {
     downloadCsv('inversiones-briq.csv', rows);
   }
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(briqs.map((b) => b.id)));
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
   function handleDelete(id: string) {
     setConfirm({ type: 'delete', id });
   }
@@ -150,6 +182,7 @@ export default function BriqPage() {
     if (!confirm) return;
     if (confirm.type === 'delete') {
       await getInvestmentUseCases().deleteInvestment(confirm.id);
+      setSelected((prev) => { const n = new Set(prev); n.delete(confirm.id); return n; });
       toast('Inversión eliminada');
     } else {
       await getInvestmentUseCases().completeBriqInvestment(confirm.id);
@@ -157,6 +190,18 @@ export default function BriqPage() {
     }
     setConfirm(null);
     refresh();
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true);
+    const uc = getInvestmentUseCases();
+    await Promise.all([...selected].map((id) => uc.deleteInvestment(id)));
+    const count = selected.size;
+    clearSelection();
+    setBulkConfirm(false);
+    setBulkDeleting(false);
+    refresh();
+    toast(`${count} inversión${count !== 1 ? 'es' : ''} eliminada${count !== 1 ? 's' : ''}`);
   }
 
   return (
@@ -259,11 +304,41 @@ export default function BriqPage() {
         </Card>
       )}
 
-      {/* Search */}
+      {/* Search + selection toolbar */}
       {briqs.length > 0 && (
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Buscar proyecto..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-48">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input placeholder="Buscar proyecto..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+
+          {/* Selection controls */}
+          {selected.size === 0 ? (
+            <Button variant="outline" size="sm" onClick={selectAll} className="text-slate-500">
+              <CheckSquare className="h-4 w-4 mr-1.5" />Seleccionar todos
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5">
+              <span className="text-sm font-medium text-indigo-700 tabular-nums">
+                {selected.size} seleccionada{selected.size !== 1 ? 's' : ''}
+              </span>
+              <div className="w-px h-4 bg-indigo-200" />
+              <button onClick={selectAll} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+                Todas ({briqs.length})
+              </button>
+              <button onClick={clearSelection} className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors">
+                Limpiar
+              </button>
+              <div className="w-px h-4 bg-indigo-200" />
+              <button
+                onClick={() => setBulkConfirm(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar {selected.size}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -286,7 +361,7 @@ export default function BriqPage() {
           {active.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filtered(active).map((b) => (
-                <BriqCard key={b.id} b={b} onDelete={handleDelete} onEdit={setEditTarget} onComplete={handleComplete} />
+                <BriqCard key={b.id} b={b} onDelete={handleDelete} onEdit={setEditTarget} onComplete={handleComplete} selected={selected.has(b.id)} onToggleSelect={toggleSelect} />
               ))}
             </div>
           )}
@@ -295,7 +370,7 @@ export default function BriqPage() {
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Completadas ({completed.length})</h2>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered(completed).map((b) => (
-                  <BriqCard key={b.id} b={b} onDelete={handleDelete} onEdit={setEditTarget} onComplete={handleComplete} />
+                  <BriqCard key={b.id} b={b} onDelete={handleDelete} onEdit={setEditTarget} onComplete={handleComplete} selected={selected.has(b.id)} onToggleSelect={toggleSelect} />
                 ))}
               </div>
             </div>
@@ -317,7 +392,7 @@ export default function BriqPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm dialog */}
+      {/* Single confirm dialog */}
       <ConfirmDialog
         open={!!confirm}
         title={confirm?.type === 'delete' ? '¿Eliminar inversión?' : '¿Marcar como completada?'}
@@ -330,6 +405,17 @@ export default function BriqPage() {
         variant={confirm?.type === 'delete' ? 'danger' : 'default'}
         onConfirm={handleConfirm}
         onCancel={() => setConfirm(null)}
+      />
+
+      {/* Bulk delete confirm dialog */}
+      <ConfirmDialog
+        open={bulkConfirm}
+        title={`¿Eliminar ${selected.size} inversión${selected.size !== 1 ? 'es' : ''}?`}
+        description={`Se eliminarán permanentemente ${selected.size} inversión${selected.size !== 1 ? 'es' : ''} seleccionada${selected.size !== 1 ? 's' : ''}. Esta acción no se puede deshacer.`}
+        confirmLabel={bulkDeleting ? 'Eliminando...' : `Eliminar ${selected.size}`}
+        variant="danger"
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   );
