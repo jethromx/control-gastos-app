@@ -4,28 +4,33 @@
   --color-primary: #4F46E5;
   --color-primary-hover: #4338CA;
   --color-accent: #059669;
-  --color-background: #F8FAFC;
+  --color-background: #F4F6FB;
   --color-surface: #FFFFFF;
-  --color-border: #E2E8F0;
+  --color-border: #E4E9F2;
   --color-muted: #64748B;
-  --color-foreground: #0F172A;
+  --color-foreground: #0D0F1A;
   --color-destructive: #DC2626;
-  --radius-card: 12px;
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.05);
+  --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.04), 0 12px 32px rgb(0 0 0 / 0.08);
 }
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
-  html, body {
-    height: 100%;
-  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -35,18 +40,22 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes slide-in {
   from { opacity: 0; transform: translateX(-8px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
 
-.animate-in { animation: fade-in 0.18s ease-out; }
-.fade-in-0  { opacity: 0; }
-.zoom-in-95 { transform: scale(0.95); }
+.animate-in  { animation: fade-in 0.2s ease-out both; }
+.scale-in    { animation: scale-in 0.15s ease-out both; }
+.fade-in-0   { opacity: 0; }
+.zoom-in-95  { transform: scale(0.95); }
 
-/* Radix animation helpers */
-[data-state="open"] { animation: fade-in 0.18s ease-out; }
+[data-state="open"]  { animation: scale-in 0.15s ease-out; }
+[data-state="closed"] { animation: scale-in 0.1s ease-in reverse; }
