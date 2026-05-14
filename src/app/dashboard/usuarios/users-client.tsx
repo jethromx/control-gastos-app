@@ -1,0 +1,185 @@
+'use client';
+import { useState } from 'react';
+import { Users, Shield, User, Trash2, UserPlus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
+import { Button } from '../../../presentation/components/ui/button';
+import { Badge } from '../../../presentation/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../presentation/components/ui/dialog';
+import { ConfirmDialog } from '../../../presentation/components/ui/confirm-dialog';
+import { Input } from '../../../presentation/components/ui/input';
+import { Label } from '../../../presentation/components/ui/label';
+import { getUserRepository } from '../../../presentation/lib/di';
+import { formatDate } from '../../../presentation/lib/utils';
+import { inviteUser } from '../../actions/invite-user';
+
+type ProfileRow = { id: string; full_name: string; role: string; avatar_url: string | null; created_at: string; updated_at: string };
+
+interface Props {
+  initialUsers: ProfileRow[];
+  currentUserId: string;
+}
+
+export function UsersClient({ initialUsers, currentUserId }: Props) {
+  const [users, setUsers] = useState(initialUsers);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const adminCount = users.filter((u) => u.role === 'admin').length;
+
+  async function handleInvite() {
+    if (!inviteEmail) return;
+    setInviting(true); setInviteError('');
+    const result = await inviteUser(inviteEmail);
+    setInviting(false);
+    if (result.error) { setInviteError(result.error); return; }
+    setInviteSuccess(true);
+    setTimeout(() => { setInviteOpen(false); setInviteEmail(''); setInviteSuccess(false); }, 2000);
+  }
+
+  async function toggleRole(userId: string, currentRole: string) {
+    if (userId === currentUserId) return;
+    setSaving(userId);
+    const repo = getUserRepository();
+    await repo.update(userId, { role: currentRole === 'admin' ? 'user' : 'admin' });
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: currentRole === 'admin' ? 'user' : 'admin' } : u));
+    setSaving(null);
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!confirmDeleteId || confirmDeleteId === currentUserId) return;
+    setSaving(confirmDeleteId);
+    const repo = getUserRepository();
+    await repo.delete(confirmDeleteId);
+    setUsers((prev) => prev.filter((u) => u.id !== confirmDeleteId));
+    setSaving(null);
+    setConfirmDeleteId(null);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Administración de usuarios</h1>
+          <p className="text-gray-500">{users.length} usuario{users.length !== 1 ? 's' : ''} registrado{users.length !== 1 ? 's' : ''}</p>
+        </div>
+        <Button onClick={() => { setInviteOpen(true); setInviteError(''); setInviteSuccess(false); }}>
+          <UserPlus className="h-4 w-4 mr-2" />Invitar usuario
+        </Button>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
+              <Users className="h-4 w-4 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              <p className="text-xs text-gray-500">Total usuarios</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+              <Shield className="h-4 w-4 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{adminCount}</p>
+              <p className="text-xs text-gray-500">Admins</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Invitar usuario</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {inviteSuccess ? (
+              <p className="text-sm text-green-600 font-medium">Invitación enviada. El usuario recibirá un correo para configurar su cuenta.</p>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <Label>Correo electrónico</Label>
+                  <Input type="email" placeholder="usuario@email.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+                </div>
+                {inviteError && <p className="text-sm text-red-500">{inviteError}</p>}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleInvite} disabled={inviting || !inviteEmail}>{inviting ? 'Enviando...' : 'Enviar invitación'}</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" />Usuarios</CardTitle></CardHeader>
+        <CardContent>
+          <div className="divide-y divide-gray-100">
+            {users.map((u) => (
+              <div key={u.id} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
+                    <User className="h-4 w-4 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{u.full_name}</p>
+                    <p className="text-xs text-gray-400">{formatDate(u.created_at)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={u.role === 'admin' ? 'default' : 'secondary'} className="flex items-center gap-1">
+                    {u.role === 'admin' && <Shield className="h-3 w-3" />}
+                    {u.role === 'admin' ? 'Admin' : 'Usuario'}
+                  </Badge>
+                  {u.id !== currentUserId && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        disabled={saving === u.id}
+                        onClick={() => toggleRole(u.id, u.role)}
+                      >
+                        {u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-red-500"
+                        disabled={saving === u.id}
+                        onClick={() => setConfirmDeleteId(u.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  {u.id === currentUserId && <Badge variant="secondary">Tú</Badge>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="¿Eliminar usuario?"
+        description="Esta acción no se puede deshacer. El usuario perderá acceso permanentemente."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+    </div>
+  );
+}
