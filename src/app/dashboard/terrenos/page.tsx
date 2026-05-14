@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, TreePine, Trash2, ChevronDown, ChevronUp, Pencil, Search, CheckCircle, Download } from 'lucide-react';
+import { Plus, TreePine, Trash2, ChevronDown, ChevronUp, Pencil, Search, CheckCircle, Download, DollarSign, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -242,8 +242,8 @@ export default function TerrenosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Terrenos</h1>
-          <p className="text-gray-500">Seguimiento de compra, pagos y gastos</p>
+          <h1 className="text-2xl font-bold text-slate-900">Terrenos</h1>
+          <p className="text-slate-500">Seguimiento de compra, pagos y gastos</p>
         </div>
         <div className="flex gap-2">
           {lands.length > 0 && (
@@ -258,6 +258,60 @@ export default function TerrenosPage() {
         </Dialog>
         </div>
       </div>
+      {/* Summary cards */}
+      {lands.length > 0 && (() => {
+        const activeLands = lands.filter(l => l.status !== 'completed');
+        const totalPrice = activeLands.reduce((s, l) => s + l.details.totalPrice, 0);
+        const totalPaid = activeLands.reduce((s, l) => s + l.totalPaid, 0);
+        const totalRemaining = activeLands.reduce((s, l) => s + l.remaining, 0);
+        return (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Precio total</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalPrice)}</p>
+                    <p className="mt-1 text-xs text-slate-400">{activeLands.length} terreno{activeLands.length !== 1 ? 's' : ''} activo{activeLands.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500">
+                    <TreePine className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total pagado</p>
+                    <p className="mt-2 text-2xl font-bold text-emerald-600 tabular-nums">{formatCurrency(totalPaid)}</p>
+                    <p className="mt-1 text-xs text-slate-400">{totalPrice > 0 ? ((totalPaid / totalPrice) * 100).toFixed(1) : '0.0'}% del total</p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500">
+                    <Wallet className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Por pagar</p>
+                    <p className="mt-2 text-2xl font-bold text-amber-600 tabular-nums">{formatCurrency(totalRemaining)}</p>
+                    <p className="mt-1 text-xs text-slate-400">Saldo pendiente</p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500">
+                    <DollarSign className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
+
       {lands.length > 0 && (
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

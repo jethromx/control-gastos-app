@@ -10,7 +10,15 @@ export default async function UsersPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single<{ role: string }>();
   if (profile?.role !== 'admin') redirect('/dashboard');
 
-  const { data: users } = await supabase.from('profiles').select('*').order('created_at').returns<Array<{ id: string; full_name: string; role: string; avatar_url: string | null; created_at: string; updated_at: string }>>();
+  const [{ data: users }, { data: investments }] = await Promise.all([
+    supabase.from('profiles').select('*').order('created_at').returns<Array<{ id: string; full_name: string; role: string; avatar_url: string | null; created_at: string; updated_at: string }>>(),
+    supabase.from('investments').select('type, user_id').returns<Array<{ type: string; user_id: string }>>(),
+  ]);
 
-  return <UsersClient initialUsers={users ?? []} currentUserId={user.id} />;
+  const byType = (investments ?? []).reduce((acc, i) => {
+    acc[i.type] = (acc[i.type] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return <UsersClient initialUsers={users ?? []} currentUserId={user.id} investmentStats={byType} />;
 }

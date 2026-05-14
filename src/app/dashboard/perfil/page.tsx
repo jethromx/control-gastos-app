@@ -68,8 +68,8 @@ export default function PerfilPage() {
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mi perfil</h1>
-        <p className="text-gray-500">Administra tu información personal</p>
+        <h1 className="text-2xl font-bold text-slate-900">Mi perfil</h1>
+        <p className="text-slate-500">Administra tu información personal</p>
       </div>
 
       {/* Avatar + info */}
@@ -80,9 +80,9 @@ export default function PerfilPage() {
               {profile?.fullName?.charAt(0).toUpperCase() ?? '?'}
             </div>
             <div>
-              <p className="font-semibold text-gray-900">{profile?.fullName}</p>
-              <p className="text-sm text-gray-500">{supabaseUser?.email}</p>
-              <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${profile?.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'}`}>
+              <p className="font-semibold text-slate-900">{profile?.fullName}</p>
+              <p className="text-sm text-slate-500">{supabaseUser?.email}</p>
+              <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${profile?.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-slate-600'}`}>
                 {profile?.role === 'admin' ? 'Administrador' : 'Usuario'}
               </span>
             </div>
@@ -110,8 +110,8 @@ export default function PerfilPage() {
             </div>
             <div className="grid gap-2">
               <Label>Correo electrónico</Label>
-              <Input value={supabaseUser?.email ?? ''} disabled className="bg-gray-50 text-gray-500" />
-              <p className="text-xs text-gray-400">El correo no se puede cambiar desde aquí</p>
+              <Input value={supabaseUser?.email ?? ''} disabled className="bg-gray-50 text-slate-500" />
+              <p className="text-xs text-slate-400">El correo no se puede cambiar desde aquí</p>
             </div>
             <Button type="submit" disabled={nameSaving} className="flex items-center gap-2">
               <Save className="h-4 w-4" />{nameSaving ? 'Guardando...' : 'Guardar nombre'}

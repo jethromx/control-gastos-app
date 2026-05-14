@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Users, Shield, User, Trash2, UserPlus } from 'lucide-react';
+import { Users, Shield, User, Trash2, UserPlus, TrendingUp, Wallet, TreePine, Boxes } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -17,9 +17,10 @@ type ProfileRow = { id: string; full_name: string; role: string; avatar_url: str
 interface Props {
   initialUsers: ProfileRow[];
   currentUserId: string;
+  investmentStats: Record<string, number>;
 }
 
-export function UsersClient({ initialUsers, currentUserId }: Props) {
+export function UsersClient({ initialUsers, currentUserId, investmentStats }: Props) {
   const [users, setUsers] = useState(initialUsers);
   const [saving, setSaving] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -76,23 +77,46 @@ export function UsersClient({ initialUsers, currentUserId }: Props) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100">
               <Users className="h-4 w-4 text-indigo-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              <p className="text-xs text-gray-500">Total usuarios</p>
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">{users.length}</p>
+              <p className="text-xs text-slate-500">Total usuarios</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
               <Shield className="h-4 w-4 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{adminCount}</p>
-              <p className="text-xs text-gray-500">Admins</p>
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">{adminCount}</p>
+              <p className="text-xs text-slate-500">Admins</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-100">
+              <TrendingUp className="h-4 w-4 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">{(investmentStats['briq'] ?? 0) + (investmentStats['fund'] ?? 0) + (investmentStats['land'] ?? 0) + (investmentStats['custom'] ?? 0)}</p>
+              <p className="text-xs text-slate-500">Inversiones</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-slate-500 mb-2">Por tipo</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {investmentStats['briq'] > 0 && <span className="text-xs text-slate-600"><span className="font-semibold text-violet-600">{investmentStats['briq']}</span> Briq</span>}
+              {investmentStats['fund'] > 0 && <span className="text-xs text-slate-600"><span className="font-semibold text-sky-600">{investmentStats['fund']}</span> Fondos</span>}
+              {investmentStats['land'] > 0 && <span className="text-xs text-slate-600"><span className="font-semibold text-emerald-600">{investmentStats['land']}</span> Terrenos</span>}
+              {investmentStats['custom'] > 0 && <span className="text-xs text-slate-600"><span className="font-semibold text-indigo-600">{investmentStats['custom']}</span> Otros</span>}
+              {Object.keys(investmentStats).length === 0 && <span className="text-xs text-slate-400">Sin datos</span>}
             </div>
           </CardContent>
         </Card>

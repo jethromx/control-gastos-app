@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, Wallet, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Pencil, Search, CheckCircle, Download } from 'lucide-react';
+import { Plus, Wallet, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Pencil, Search, CheckCircle, Download, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -293,8 +293,8 @@ export default function FondosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fondos de inversión</h1>
-          <p className="text-gray-500">Seguimiento de títulos y valor de mercado</p>
+          <h1 className="text-2xl font-bold text-slate-900">Fondos de inversión</h1>
+          <p className="text-slate-500">Seguimiento de títulos y valor de mercado</p>
         </div>
         <div className="flex gap-2">
           {funds.length > 0 && (
@@ -309,6 +309,60 @@ export default function FondosPage() {
         </Dialog>
         </div>
       </div>
+      {/* Summary cards */}
+      {funds.length > 0 && (() => {
+        const totalInvested = funds.filter(f => f.status !== 'completed').reduce((s, f) => s + f.totalInvested, 0);
+        const totalValue = funds.filter(f => f.status !== 'completed').reduce((s, f) => s + f.currentValue, 0);
+        const totalGain = totalValue - totalInvested;
+        const gainPositive = totalGain >= 0;
+        return (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total invertido</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalInvested)}</p>
+                    <p className="mt-1 text-xs text-slate-400">{active.length} fondo{active.length !== 1 ? 's' : ''} activo{active.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500">
+                    <Wallet className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Valor actual</p>
+                    <p className="mt-2 text-2xl font-bold text-indigo-600 tabular-nums">{formatCurrency(totalValue)}</p>
+                    <p className="mt-1 text-xs text-slate-400">Precio de mercado</p>
+                  </div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className={gainPositive ? 'border-emerald-200' : 'border-red-200'}>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Ganancia / Pérdida</p>
+                    <p className={`mt-2 text-2xl font-bold tabular-nums ${gainPositive ? 'text-emerald-600' : 'text-red-500'}`}>{gainPositive ? '+' : ''}{formatCurrency(totalGain)}</p>
+                    <p className="mt-1 text-xs text-slate-400">{totalInvested > 0 ? ((totalGain / totalInvested) * 100).toFixed(2) : '0.00'}% sobre invertido</p>
+                  </div>
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${gainPositive ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                    {gainPositive ? <TrendingUp className="h-5 w-5 text-white" /> : <TrendingDown className="h-5 w-5 text-white" />}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
+
       {funds.length > 0 && (
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

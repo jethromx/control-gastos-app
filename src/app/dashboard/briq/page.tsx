@@ -161,8 +161,8 @@ export default function BriqPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inversiones Briq</h1>
-          <p className="text-gray-500">Proyectos de inversión con tasa de interés fija</p>
+          <h1 className="text-2xl font-bold text-slate-900">Inversiones Briq</h1>
+          <p className="text-slate-500">Proyectos de inversión con tasa de interés fija</p>
         </div>
         <div className="flex gap-2">
           {briqs.length > 0 && (
@@ -184,9 +184,48 @@ export default function BriqPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card><CardContent className="p-6"><p className="text-sm text-gray-500">Capital activo</p><p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(totalCapital)}</p></CardContent></Card>
-        <Card><CardContent className="p-6"><p className="text-sm text-gray-500">Interés mensual</p><p className="text-2xl font-bold text-indigo-600 mt-1">{formatCurrency(totalMonthly)}</p></CardContent></Card>
-        <Card><CardContent className="p-6"><p className="text-sm text-gray-500">Interés anual</p><p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(totalAnnual)}</p></CardContent></Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Capital activo</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalCapital)}</p>
+                <p className="mt-1 text-xs text-slate-400">{active.length} inversión{active.length !== 1 ? 'es' : ''} activa{active.length !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Interés mensual</p>
+                <p className="mt-2 text-2xl font-bold text-indigo-600 tabular-nums">{formatCurrency(totalMonthly)}</p>
+                <p className="mt-1 text-xs text-slate-400">Proyectado este mes</p>
+              </div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500">
+                <ArrowUpRight className="h-5 w-5 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Interés anual</p>
+                <p className="mt-2 text-2xl font-bold text-green-600 tabular-nums">{formatCurrency(totalAnnual)}</p>
+                <p className="mt-1 text-xs text-slate-400">Proyectado este año</p>
+              </div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Chart */}

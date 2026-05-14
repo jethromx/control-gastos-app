@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Boxes, Trash2 } from 'lucide-react';
+import { Plus, Boxes, Trash2, DollarSign, LayoutGrid, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../presentation/components/ui/dialog';
+import { Input } from '../../../presentation/components/ui/input';
+import { Label } from '../../../presentation/components/ui/label';
 import { ConfirmDialog } from '../../../presentation/components/ui/confirm-dialog';
 import { InvestmentCardSkeleton } from '../../../presentation/components/ui/investment-card-skeleton';
 import { CustomForm } from '../../../presentation/components/investments/custom-form';
@@ -33,7 +35,7 @@ function parseDescription(description?: string): ParsedCustom {
   }
 }
 
-function CustomCard({ investment, onDelete }: { investment: Investment; onDelete: (id: string) => void }) {
+function CustomCard({ investment, onDelete, onEdit }: { investment: Investment; onDelete: (id: string) => void; onEdit: (inv: Investment) => void }) {
   const parsed = parseDescription(investment.description);
   return (
     <Card className="transition-shadow hover:shadow-lg cursor-pointer">
@@ -41,27 +43,27 @@ function CustomCard({ investment, onDelete }: { investment: Investment; onDelete
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-sm font-semibold leading-tight truncate">{investment.name}</CardTitle>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               {parsed.date ? formatDate(parsed.date) : formatDate(investment.createdAt)}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-gray-400 hover:text-red-500 shrink-0"
-            onClick={() => onDelete(investment.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600" onClick={() => onEdit(investment)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500" onClick={() => onDelete(investment.id)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Monto</span>
-          <span className="font-semibold text-gray-900">{formatCurrency(parsed.amount)}</span>
+          <span className="text-xs text-slate-500">Monto</span>
+          <span className="font-semibold text-slate-900 tabular-nums">{formatCurrency(parsed.amount)}</span>
         </div>
         {parsed.notes && (
-          <p className="text-xs text-gray-400 italic pt-1">{parsed.notes}</p>
+          <p className="text-xs text-slate-400 italic pt-1">{parsed.notes}</p>
         )}
       </CardContent>
     </Card>
@@ -75,6 +77,9 @@ export default function OtrosPage() {
   const [loading, setLoading] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<Investment | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', amount: '', date: '', notes: '' });
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -89,6 +94,24 @@ export default function OtrosPage() {
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);
+
+  function openEdit(inv: Investment) {
+    const p = parseDescription(inv.description);
+    setEditForm({ name: inv.name, amount: String(p.amount), date: p.date || new Date().toISOString().split('T')[0], notes: p.notes });
+    setEditTarget(inv);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditSaving(true);
+    const description = JSON.stringify({ amount: parseFloat(editForm.amount), date: editForm.date, notes: editForm.notes });
+    await getInvestmentUseCases().updateInvestment(editTarget.id, { name: editForm.name, description });
+    setEditSaving(false);
+    setEditTarget(null);
+    toast('Proyecto actualizado');
+    load();
+  }
 
   async function handleDelete() {
     if (!confirmId) return;
@@ -107,8 +130,8 @@ export default function OtrosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Otros proyectos</h1>
-          <p className="text-gray-500">Inversiones y proyectos personalizados</p>
+          <h1 className="text-2xl font-bold text-slate-900">Otros proyectos</h1>
+          <p className="text-slate-500">Inversiones y proyectos personalizados</p>
         </div>
         <Dialog open={newOpen} onOpenChange={setNewOpen}>
           <DialogTrigger asChild>
@@ -131,15 +154,31 @@ export default function OtrosPage() {
       {investments.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-500">Total proyectos</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{investments.length}</p>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total proyectos</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{investments.length}</p>
+                  <p className="mt-1 text-xs text-slate-400">proyectos registrados</p>
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500">
+                  <LayoutGrid className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-500">Monto total</p>
-              <p className="text-2xl font-bold text-indigo-600 mt-1">{formatCurrency(totalAmount)}</p>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Monto total</p>
+                  <p className="mt-2 text-2xl font-bold text-indigo-600 tabular-nums">{formatCurrency(totalAmount)}</p>
+                  <p className="mt-1 text-xs text-slate-400">suma de inversiones</p>
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -162,10 +201,41 @@ export default function OtrosPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {investments.map((inv) => (
-            <CustomCard key={inv.id} investment={inv} onDelete={setConfirmId} />
+            <CustomCard key={inv.id} investment={inv} onDelete={setConfirmId} onEdit={openEdit} />
           ))}
         </div>
       )}
+
+      {/* Edit dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) setEditTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Editar proyecto</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="grid gap-2">
+              <Label>Nombre <span className="text-red-500">*</span></Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} required />
+            </div>
+            <div className="grid gap-2">
+              <Label>Monto (MXN) <span className="text-red-500">*</span></Label>
+              <Input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm((p) => ({ ...p, amount: e.target.value }))} required />
+            </div>
+            <div className="grid gap-2">
+              <Label>Fecha</Label>
+              <Input type="date" value={editForm.date} onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Notas (opcional)</Label>
+              <Input value={editForm.notes} onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Descripción libre..." />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>Cancelar</Button>
+              <Button type="submit" disabled={editSaving || !editForm.name || !editForm.amount}>
+                {editSaving ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!confirmId}
