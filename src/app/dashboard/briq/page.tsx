@@ -12,6 +12,7 @@ import { BriqChart } from '../../../presentation/components/charts/briq-chart';
 import { BriqProjectionChart } from '../../../presentation/components/charts/briq-projection-chart';
 import { BriqForm } from '../../../presentation/components/investments/briq-form';
 import { BriqEditForm } from '../../../presentation/components/investments/briq-edit-form';
+import { BriqImportButton } from '../../../presentation/components/investments/briq-import';
 import { useAuth } from '../../../presentation/hooks/use-auth';
 import { useBriqs } from '../../../presentation/hooks/use-investments';
 import { useToast } from '../../../presentation/components/ui/toast-provider';
@@ -169,6 +170,7 @@ export default function BriqPage() {
           {briqs.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-2" />Exportar</Button>
           )}
+          {userId && <BriqImportButton userId={userId} onImported={refresh} />}
           <Dialog open={newOpen} onOpenChange={setNewOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Nueva inversión</Button>
