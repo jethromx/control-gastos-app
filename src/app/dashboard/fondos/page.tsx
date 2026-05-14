@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../../../presentation/components/ui/confirm-dialo
 import { InvestmentCardSkeleton } from '../../../presentation/components/ui/investment-card-skeleton';
 import { FundForm } from '../../../presentation/components/investments/fund-form';
 import { FundChart } from '../../../presentation/components/charts/fund-chart';
+import { FundPerformanceChart } from '../../../presentation/components/charts/fund-performance-chart';
 import { useAuth } from '../../../presentation/hooks/use-auth';
 import { useFunds } from '../../../presentation/hooks/use-investments';
 import { useToast } from '../../../presentation/components/ui/toast-provider';
@@ -362,6 +363,18 @@ export default function FondosPage() {
           </div>
         );
       })()}
+
+      {/* Rendimiento histórico */}
+      {active.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Rendimiento histórico de fondos (%)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FundPerformanceChart funds={active} />
+          </CardContent>
+        </Card>
+      )}
 
       {funds.length > 0 && (
         <div className="relative max-w-sm">

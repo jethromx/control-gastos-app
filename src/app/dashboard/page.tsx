@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../presentation/com
 import { Badge } from '../../presentation/components/ui/badge';
 import { PortfolioChart } from '../../presentation/components/charts/portfolio-chart';
 import { MonthlyInterestChart } from '../../presentation/components/charts/monthly-interest-chart';
+import { PortfolioGrowthChart } from '../../presentation/components/charts/portfolio-growth-chart';
 import { useAuth } from '../../presentation/hooks/use-auth';
 import { useDashboard } from '../../presentation/hooks/use-investments';
 import { formatCurrency, calcDaysUntilExpiry } from '../../presentation/lib/utils';
@@ -105,6 +106,25 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Evolución del portafolio */}
+      {(data?.briqs.length ?? 0) + (data?.funds.length ?? 0) + (data?.lands.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-indigo-600" />
+              Evolución del portafolio
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PortfolioGrowthChart
+              briqs={data?.briqs ?? []}
+              funds={data?.funds ?? []}
+              lands={data?.lands ?? []}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Proyección anual */}
       {briqAnnual > 0 && (

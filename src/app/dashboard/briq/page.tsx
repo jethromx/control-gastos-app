@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ConfirmDialog } from '../../../presentation/components/ui/confirm-dialog';
 import { InvestmentCardSkeleton } from '../../../presentation/components/ui/investment-card-skeleton';
 import { BriqChart } from '../../../presentation/components/charts/briq-chart';
+import { BriqProjectionChart } from '../../../presentation/components/charts/briq-projection-chart';
 import { BriqForm } from '../../../presentation/components/investments/briq-form';
 import { BriqEditForm } from '../../../presentation/components/investments/briq-edit-form';
 import { useAuth } from '../../../presentation/hooks/use-auth';
@@ -241,6 +242,18 @@ export default function BriqPage() {
             </div>
           </CardHeader>
           <CardContent><BriqChart briqs={briqs} mode={chartMode} /></CardContent>
+        </Card>
+      )}
+
+      {/* Projection chart */}
+      {active.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Proyección de interés — próximos 12 meses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BriqProjectionChart briqs={briqs} />
+          </CardContent>
         </Card>
       )}
 
