@@ -11,7 +11,9 @@ import { AforeForm } from '../../../presentation/components/investments/afore-fo
 import { AforeMovementForm } from '../../../presentation/components/investments/afore-movement-form';
 import { AforeSnapshotForm } from '../../../presentation/components/investments/afore-snapshot-form';
 import { AforeImportButton } from '../../../presentation/components/investments/afore-import';
-import { AforeBalanceChart } from '../../../presentation/components/charts/afore-balance-chart';
+import dynamic from 'next/dynamic';
+const ChartSkeleton = () => <div className="h-56 animate-pulse rounded-lg bg-slate-100" />;
+const AforeBalanceChart = dynamic(() => import('../../../presentation/components/charts/afore-balance-chart').then((m) => ({ default: m.AforeBalanceChart })), { ssr: false, loading: ChartSkeleton });
 import { useAuth } from '../../../presentation/hooks/use-auth';
 import { useAfores } from '../../../presentation/hooks/use-investments';
 import { useToast } from '../../../presentation/components/ui/toast-provider';

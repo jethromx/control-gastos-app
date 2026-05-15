@@ -3,12 +3,22 @@ import { useState, useEffect } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { createClient } from '../../infrastructure/supabase/client';
 import { User } from '../../domain/entities/user.entity';
-import { getUserRepository } from '../lib/di';
+import { getUserRepository, resetDI } from '../lib/di';
+
+// Module-level cache so navigating between pages doesn't re-fetch the profile.
+// Cleared on sign-out via resetAuthCache().
+let _cachedProfile: User | null = null;
+let _cachedUserId: string | null = null;
+
+export function resetAuthCache() {
+  _cachedProfile = null;
+  _cachedUserId = null;
+}
 
 export function useAuth() {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<User | null>(_cachedProfile);
+  const [loading, setLoading] = useState(_cachedProfile === null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -16,10 +26,15 @@ export function useAuth() {
     async function loadUser(user: SupabaseUser | null) {
       setSupabaseUser(user);
       if (user) {
+        // Return immediately from cache when navigating between pages.
+        if (_cachedUserId === user.id && _cachedProfile) {
+          setProfile(_cachedProfile);
+          setLoading(false);
+          return;
+        }
         try {
           const repo = getUserRepository();
           let p = await repo.findById(user.id);
-          // Auto-create profile if missing (trigger may not have fired)
           if (!p) {
             try {
               p = await repo.create({
@@ -33,11 +48,17 @@ export function useAuth() {
             }
             p = await repo.findById(user.id);
           }
+          _cachedProfile = p;
+          _cachedUserId = user.id;
           setProfile(p);
         } catch {
           setProfile(null);
         }
       } else {
+        // Sign-out: clear all caches
+        _cachedProfile = null;
+        _cachedUserId = null;
+        resetDI();
         setProfile(null);
       }
       setLoading(false);
@@ -52,7 +73,6 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // userId is always the Supabase auth ID — available even without a profile row
   const userId = supabaseUser?.id ?? profile?.id;
 
   return { supabaseUser, profile, loading, isAdmin: profile?.role === 'admin', userId };

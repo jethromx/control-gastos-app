@@ -6,9 +6,12 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../presentation/components/ui/card';
 import { Badge } from '../../presentation/components/ui/badge';
-import { PortfolioChart } from '../../presentation/components/charts/portfolio-chart';
-import { IncomeForecastChart } from '../../presentation/components/charts/income-forecast-chart';
-import { PortfolioGrowthChart } from '../../presentation/components/charts/portfolio-growth-chart';
+import dynamic from 'next/dynamic';
+
+const ChartSkeleton = () => <div className="h-64 animate-pulse rounded-lg bg-slate-100" />;
+const PortfolioChart = dynamic(() => import('../../presentation/components/charts/portfolio-chart').then((m) => ({ default: m.PortfolioChart })), { ssr: false, loading: ChartSkeleton });
+const IncomeForecastChart = dynamic(() => import('../../presentation/components/charts/income-forecast-chart').then((m) => ({ default: m.IncomeForecastChart })), { ssr: false, loading: ChartSkeleton });
+const PortfolioGrowthChart = dynamic(() => import('../../presentation/components/charts/portfolio-growth-chart').then((m) => ({ default: m.PortfolioGrowthChart })), { ssr: false, loading: ChartSkeleton });
 import { useAuth } from '../../presentation/hooks/use-auth';
 import { useDashboard } from '../../presentation/hooks/use-investments';
 import { formatCurrency, calcDaysUntilExpiry } from '../../presentation/lib/utils';

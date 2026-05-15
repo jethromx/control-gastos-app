@@ -15,7 +15,9 @@ import { ConfirmDialog } from '../../../presentation/components/ui/confirm-dialo
 import { InvestmentCardSkeleton } from '../../../presentation/components/ui/investment-card-skeleton';
 import { LandForm } from '../../../presentation/components/investments/land-form';
 import { LandEditForm } from '../../../presentation/components/investments/land-edit-form';
-import { LandPaymentsChart } from '../../../presentation/components/charts/land-payments-chart';
+import dynamic from 'next/dynamic';
+const ChartSkeleton = () => <div className="h-56 animate-pulse rounded-lg bg-slate-100" />;
+const LandPaymentsChart = dynamic(() => import('../../../presentation/components/charts/land-payments-chart').then((m) => ({ default: m.LandPaymentsChart })), { ssr: false, loading: ChartSkeleton });
 import { useAuth } from '../../../presentation/hooks/use-auth';
 import { useLands } from '../../../presentation/hooks/use-investments';
 import { useToast } from '../../../presentation/components/ui/toast-provider';

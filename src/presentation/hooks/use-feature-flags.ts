@@ -5,6 +5,7 @@ import { createClient } from '../../infrastructure/supabase/client';
 export type FeatureFlags = Record<string, boolean>;
 
 let cache: FeatureFlags | null = null;
+let pending: Promise<FeatureFlags> | null = null;
 const listeners: Array<(flags: FeatureFlags) => void> = [];
 
 function notify(flags: FeatureFlags) {
@@ -13,11 +14,19 @@ function notify(flags: FeatureFlags) {
 }
 
 export async function fetchFeatureFlags(): Promise<FeatureFlags> {
-  const supabase = createClient();
-  const { data } = await supabase.from('feature_flags').select('key, enabled');
-  const flags = Object.fromEntries((data ?? []).map((r: { key: string; enabled: boolean }) => [r.key, r.enabled]));
-  notify(flags);
-  return flags;
+  if (cache) return cache;
+  // Deduplicate concurrent calls — all callers await the same promise.
+  if (!pending) {
+    pending = (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from('feature_flags').select('key, enabled');
+      const flags = Object.fromEntries((data ?? []).map((r: { key: string; enabled: boolean }) => [r.key, r.enabled]));
+      notify(flags);
+      pending = null;
+      return flags;
+    })();
+  }
+  return pending;
 }
 
 export async function setFeatureFlag(key: string, enabled: boolean): Promise<void> {
