@@ -7,12 +7,16 @@ import {
   FundTitleValue,
   LandPayment,
   LandInvestmentDetails,
+  AforeDetails,
+  AforeMovement,
+  AforeBalanceSnapshot,
 } from '../../domain/entities/investment.entity';
 import {
   InvestmentRepository,
   BriqRepository,
   FundRepository,
   LandRepository,
+  AforeRepository,
 } from '../../domain/repositories/investment.repository';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,6 +84,40 @@ function mapLandPayment(row: Row): LandPayment {
     paymentDate: new Date(row.payment_date),
     amount: Number(row.amount),
     paymentType: row.payment_type,
+    description: row.description ?? undefined,
+  };
+}
+
+function mapAforeDetails(row: Row): AforeDetails {
+  return {
+    id: row.id,
+    investmentId: row.investment_id,
+    aforeName: row.afore_name,
+    nsr: Number(row.nsr),
+    accountNumber: row.account_number ?? undefined,
+  };
+}
+
+function mapAforeSnapshot(row: Row): AforeBalanceSnapshot {
+  return {
+    id: row.id,
+    aforeId: row.afore_id,
+    snapshotDate: new Date(row.snapshot_date),
+    balanceRetiro: Number(row.balance_retiro),
+    balanceVivienda: Number(row.balance_vivienda),
+    balanceTotal: Number(row.balance_total),
+    notes: row.notes ?? undefined,
+  };
+}
+
+function mapAforeMovement(row: Row): AforeMovement {
+  return {
+    id: row.id,
+    aforeId: row.afore_id,
+    movementType: row.movement_type,
+    amount: Number(row.amount),
+    movementDate: new Date(row.movement_date),
+    balanceAfter: row.balance_after != null ? Number(row.balance_after) : undefined,
     description: row.description ?? undefined,
   };
 }
@@ -354,5 +392,125 @@ export class SupabaseLandRepository implements LandRepository {
 
   async deletePayment(id: string): Promise<void> {
     await this.supabase.from('land_payments').delete().eq('id', id);
+  }
+}
+
+export class SupabaseAforeRepository implements AforeRepository {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(private supabase: SupabaseClient<any>) {}
+
+  async findDetailsByInvestmentId(investmentId: string): Promise<AforeDetails | null> {
+    const { data } = await this.supabase
+      .from('afore_details')
+      .select('*')
+      .eq('investment_id', investmentId)
+      .single();
+    return data ? mapAforeDetails(data) : null;
+  }
+
+  async createDetails(data: Omit<AforeDetails, 'id'>): Promise<AforeDetails> {
+    const { data: row, error } = await this.supabase
+      .from('afore_details')
+      .insert({
+        investment_id: data.investmentId,
+        afore_name: data.aforeName,
+        nsr: data.nsr,
+        account_number: data.accountNumber ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapAforeDetails(row);
+  }
+
+  async updateDetails(id: string, data: Partial<AforeDetails>): Promise<AforeDetails> {
+    const updateData: Record<string, unknown> = {};
+    if (data.aforeName !== undefined) updateData.afore_name = data.aforeName;
+    if (data.nsr !== undefined) updateData.nsr = data.nsr;
+    if (data.accountNumber !== undefined) updateData.account_number = data.accountNumber;
+    const { data: row, error } = await this.supabase
+      .from('afore_details')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapAforeDetails(row);
+  }
+
+  async findMovementsByAforeId(aforeId: string): Promise<AforeMovement[]> {
+    const { data } = await this.supabase
+      .from('afore_movements')
+      .select('*')
+      .eq('afore_id', aforeId)
+      .order('movement_date', { ascending: true });
+    return (data ?? []).map(mapAforeMovement);
+  }
+
+  async createMovement(data: Omit<AforeMovement, 'id'>): Promise<AforeMovement> {
+    const { data: row, error } = await this.supabase
+      .from('afore_movements')
+      .insert({
+        afore_id: data.aforeId,
+        movement_type: data.movementType,
+        amount: data.amount,
+        movement_date: data.movementDate.toISOString().split('T')[0],
+        balance_after: data.balanceAfter ?? null,
+        description: data.description ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapAforeMovement(row);
+  }
+
+  async updateMovement(id: string, data: Partial<AforeMovement>): Promise<AforeMovement> {
+    const updateData: Record<string, unknown> = {};
+    if (data.movementType !== undefined) updateData.movement_type = data.movementType;
+    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.movementDate) updateData.movement_date = data.movementDate.toISOString().split('T')[0];
+    if (data.balanceAfter !== undefined) updateData.balance_after = data.balanceAfter ?? null;
+    if (data.description !== undefined) updateData.description = data.description ?? null;
+    const { data: row, error } = await this.supabase
+      .from('afore_movements')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapAforeMovement(row);
+  }
+
+  async deleteMovement(id: string): Promise<void> {
+    await this.supabase.from('afore_movements').delete().eq('id', id);
+  }
+
+  async findSnapshotsByAforeId(aforeId: string): Promise<AforeBalanceSnapshot[]> {
+    const { data } = await this.supabase
+      .from('afore_balance_snapshots')
+      .select('*')
+      .eq('afore_id', aforeId)
+      .order('snapshot_date', { ascending: true });
+    return (data ?? []).map(mapAforeSnapshot);
+  }
+
+  async upsertSnapshot(data: Omit<AforeBalanceSnapshot, 'id' | 'balanceTotal'>): Promise<AforeBalanceSnapshot> {
+    const { data: row, error } = await this.supabase
+      .from('afore_balance_snapshots')
+      .upsert({
+        afore_id: data.aforeId,
+        snapshot_date: data.snapshotDate.toISOString().split('T')[0],
+        balance_retiro: data.balanceRetiro,
+        balance_vivienda: data.balanceVivienda,
+        notes: data.notes ?? null,
+      }, { onConflict: 'afore_id,snapshot_date' })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapAforeSnapshot(row);
+  }
+
+  async deleteSnapshot(id: string): Promise<void> {
+    await this.supabase.from('afore_balance_snapshots').delete().eq('id', id);
   }
 }

@@ -5,6 +5,7 @@ import type {
   BriqInvestmentWithDetails,
   FundInvestmentWithDetails,
   LandInvestmentWithDetails,
+  AforeInvestmentWithDetails,
 } from '../../domain/entities/investment.entity';
 
 export function useDashboard(userId: string | undefined) {
@@ -87,4 +88,23 @@ export function useLands(userId: string | undefined) {
 
   useEffect(() => { load(); }, [load]);
   return { lands, loading, refresh: load };
+}
+
+export function useAfores(userId: string | undefined) {
+  const [afores, setAfores] = useState<AforeInvestmentWithDetails[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const uc = getInvestmentUseCases();
+      setAfores(await uc.getAllAforesForUser(userId));
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => { load(); }, [load]);
+  return { afores, loading, refresh: load };
 }

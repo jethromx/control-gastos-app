@@ -1,4 +1,4 @@
-export type InvestmentType = 'briq' | 'fund' | 'land' | 'custom';
+export type InvestmentType = 'briq' | 'fund' | 'land' | 'custom' | 'afore';
 export type InvestmentStatus = 'active' | 'completed' | 'cancelled';
 
 export interface Investment {
@@ -82,4 +82,47 @@ export interface LandInvestmentWithDetails extends Investment {
   totalExpenses: number;
   remaining: number;
   completionPercent: number;
+}
+
+// AFORE
+export type AforeMovementType = 'patron' | 'trabajador' | 'voluntario' | 'gobierno' | 'retiro';
+
+export interface AforeDetails {
+  id: string;
+  investmentId: string;
+  aforeName: string;
+  nsr: number; // rendimiento neto anual %
+  accountNumber?: string;
+}
+
+export interface AforeMovement {
+  id: string;
+  aforeId: string;
+  movementType: AforeMovementType;
+  amount: number;
+  movementDate: Date;
+  balanceAfter?: number;
+  description?: string;
+}
+
+export interface AforeBalanceSnapshot {
+  id: string;
+  aforeId: string;
+  snapshotDate: Date;
+  balanceRetiro: number;
+  balanceVivienda: number;
+  balanceTotal: number;
+  notes?: string;
+}
+
+export interface AforeInvestmentWithDetails extends Investment {
+  details: AforeDetails;
+  movements: AforeMovement[];
+  snapshots: AforeBalanceSnapshot[];
+  totalContributed: number;
+  currentBalanceRetiro: number;
+  currentBalanceVivienda: number;
+  currentBalance: number;
+  projectedMonthlyReturn: number;
+  projectedAnnualReturn: number;
 }

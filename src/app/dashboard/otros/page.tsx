@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Boxes, Trash2, DollarSign, LayoutGrid, Pencil } from 'lucide-react';
+import { useFeatureFlags } from '../../../presentation/hooks/use-feature-flags';
+import { SectionDisabled } from '../../../presentation/components/ui/section-disabled';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../presentation/components/ui/dialog';
@@ -71,8 +73,13 @@ function CustomCard({ investment, onDelete, onEdit }: { investment: Investment; 
 }
 
 export default function OtrosPage() {
+  const { isEnabled } = useFeatureFlags();
   const { userId } = useAuth();
   const { toast } = useToast();
+
+  if (!isEnabled('section_otros')) {
+    return <SectionDisabled label="Otros proyectos" />;
+  }
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newOpen, setNewOpen] = useState(false);

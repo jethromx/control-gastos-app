@@ -1,6 +1,5 @@
 import { createClient } from '../../infrastructure/supabase/client';
-import { SupabaseInvestmentRepository } from '../../infrastructure/repositories/investment.supabase.repository';
-import { SupabaseBriqRepository, SupabaseFundRepository, SupabaseLandRepository } from '../../infrastructure/repositories/investment.supabase.repository';
+import { SupabaseInvestmentRepository, SupabaseBriqRepository, SupabaseFundRepository, SupabaseLandRepository, SupabaseAforeRepository } from '../../infrastructure/repositories/investment.supabase.repository';
 import { SupabaseUserRepository } from '../../infrastructure/repositories/user.supabase.repository';
 import { InvestmentUseCases } from '../../application/use-cases/investment.use-cases';
 
@@ -10,7 +9,8 @@ export function getInvestmentUseCases() {
     new SupabaseInvestmentRepository(supabase),
     new SupabaseBriqRepository(supabase),
     new SupabaseFundRepository(supabase),
-    new SupabaseLandRepository(supabase)
+    new SupabaseLandRepository(supabase),
+    new SupabaseAforeRepository(supabase)
   );
 }
 

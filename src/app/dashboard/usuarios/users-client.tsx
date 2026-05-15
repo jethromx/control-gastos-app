@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Users, Shield, User, Trash2, UserPlus, TrendingUp, Wallet, TreePine, Boxes } from 'lucide-react';
+import { Users, Shield, User, Trash2, UserPlus, TrendingUp, Settings } from 'lucide-react';
+import { useFeatureFlags, setFeatureFlag } from '../../../presentation/hooks/use-feature-flags';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -20,9 +21,19 @@ interface Props {
   investmentStats: Record<string, number>;
 }
 
+const SECTION_FLAGS = [
+  { key: 'section_briq',     label: 'Briq',             description: 'Inversiones con tasa fija' },
+  { key: 'section_fondos',   label: 'Fondos',            description: 'Fondos de inversión' },
+  { key: 'section_terrenos', label: 'Terrenos',          description: 'Compra de terrenos' },
+  { key: 'section_afore',    label: 'AFORE',             description: 'Fondos para el retiro' },
+  { key: 'section_otros',    label: 'Otros proyectos',   description: 'Inversiones personalizadas' },
+];
+
 export function UsersClient({ initialUsers, currentUserId, investmentStats }: Props) {
   const [users, setUsers] = useState(initialUsers);
   const [saving, setSaving] = useState<string | null>(null);
+  const { flags, isEnabled } = useFeatureFlags();
+  const [flagSaving, setFlagSaving] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
@@ -49,6 +60,12 @@ export function UsersClient({ initialUsers, currentUserId, investmentStats }: Pr
     await repo.update(userId, { role: currentRole === 'admin' ? 'user' : 'admin' });
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: currentRole === 'admin' ? 'user' : 'admin' } : u));
     setSaving(null);
+  }
+
+  async function handleToggleFlag(key: string, current: boolean) {
+    setFlagSaving(key);
+    await setFeatureFlag(key, !current);
+    setFlagSaving(null);
   }
 
   async function handleDeleteConfirmed() {
@@ -204,6 +221,40 @@ export function UsersClient({ initialUsers, currentUserId, investmentStats }: Pr
         onConfirm={handleDeleteConfirmed}
         onCancel={() => setConfirmDeleteId(null)}
       />
+
+      {/* Feature flags */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Settings className="h-4 w-4 text-slate-500" />
+            Secciones disponibles
+          </CardTitle>
+          <p className="text-xs text-slate-400 mt-0.5">Activa o desactiva secciones para todos los usuarios</p>
+        </CardHeader>
+        <CardContent className="divide-y divide-slate-50">
+          {SECTION_FLAGS.map((f) => {
+            const enabled = isEnabled(f.key);
+            const isSaving = flagSaving === f.key;
+            return (
+              <div key={f.key} className="flex items-center justify-between py-3.5">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{f.label}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{f.description}</p>
+                </div>
+                <button
+                  disabled={isSaving}
+                  onClick={() => handleToggleFlag(f.key, enabled)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${enabled ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                  role="switch"
+                  aria-checked={enabled}
+                >
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 }

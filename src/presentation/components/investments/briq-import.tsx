@@ -60,10 +60,12 @@ function parseStatus(raw: string): 'active' | 'completed' {
 }
 
 function parseTermMonths(raw: string): number | undefined {
-  const val = parseFloat(raw.trim());
+  const s = raw.trim();
+  if (!s) return undefined;
+  const val = parseFloat(s);
   if (isNaN(val) || val <= 0) return undefined;
-  // If < 10 assume years; if >= 12 assume already months
-  return val < 10 ? Math.round(val * 12) : Math.round(val);
+  if (val > 100) return undefined; // calendar year (e.g. 2024) — not a term
+  return val <= 10 ? Math.round(val * 12) : Math.round(val);
 }
 
 // ── CSV parser ────────────────────────────────────────────────────────────────

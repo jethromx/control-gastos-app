@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Plus, Wallet, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Pencil, Search, CheckCircle, Download, DollarSign } from 'lucide-react';
+import { Plus, Wallet, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Pencil, Search, CheckCircle, Download, DollarSign, BarChart2 } from 'lucide-react';
+import { useFeatureFlags } from '../../../presentation/hooks/use-feature-flags';
+import { SectionDisabled } from '../../../presentation/components/ui/section-disabled';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -20,13 +22,13 @@ import { downloadCsv } from '../../../presentation/lib/export';
 import { getInvestmentUseCases } from '../../../presentation/lib/di';
 import { FundInvestmentWithDetails, FundTransaction, FundTitleValue } from '../../../domain/entities/investment.entity';
 
-function FundCard({ fund, onDelete, onRefresh, onComplete }: {
+function FundSection({ fund, onDelete, onRefresh, onComplete }: {
   fund: FundInvestmentWithDetails;
   onDelete: (id: string) => void;
   onRefresh: () => void;
   onComplete: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [chartOpen, setChartOpen] = useState(false);
   const [addTxOpen, setAddTxOpen] = useState(false);
   const [addValueOpen, setAddValueOpen] = useState(false);
   const [editTx, setEditTx] = useState<FundTransaction | null>(null);
@@ -41,6 +43,9 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
   const gainPositive = fund.gainLoss >= 0;
   const isCompleted = fund.status === 'completed';
   const uc = getInvestmentUseCases();
+
+  const sortedTx = fund.transactions.slice().sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
+  const sortedHistory = fund.titleHistory.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   async function addTransaction() {
     setSaving(true);
@@ -101,88 +106,193 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
   }
 
   return (
-    <Card className={`transition-shadow cursor-pointer ${isCompleted ? 'opacity-60' : 'hover:shadow-lg'}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-sm font-semibold leading-tight">{fund.name}</CardTitle>
-            {isCompleted && <Badge variant="secondary" className="mt-1 w-fit text-xs">Completado</Badge>}
+    <div className={`space-y-4 ${isCompleted ? 'opacity-60' : ''}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500">
+            <Wallet className="h-5 w-5 text-white" />
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {!isCompleted && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-green-600" title="Marcar como completado" onClick={() => onComplete(fund.id)}>
-                <CheckCircle className="h-3.5 w-3.5" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => onDelete(fund.id)}>
-              <Trash2 className="h-3.5 w-3.5" />
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-slate-900 truncate">{fund.name}</h2>
+            {isCompleted && <Badge variant="secondary" className="mt-0.5 text-xs">Completado</Badge>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {!isCompleted && (
+            <Button variant="outline" size="sm" onClick={() => { setTxForm({ date: new Date().toISOString().split('T')[0], qty: '', cost: '' }); setAddTxOpen(true); }}>
+              <Plus className="h-3.5 w-3.5 mr-1" />Compra
             </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div><p className="text-xs text-gray-500">Títulos</p><p className="font-semibold">{fund.totalTitles.toFixed(4)}</p></div>
-          <div><p className="text-xs text-gray-500">Valor título actual</p><p className="font-semibold">${fund.currentTitleValue.toFixed(4)}</p></div>
-          <div><p className="text-xs text-gray-500">Invertido</p><p className="font-semibold">{formatCurrency(fund.totalInvested)}</p></div>
-          <div><p className="text-xs text-gray-500">Valor actual</p><p className="font-semibold text-indigo-600">{formatCurrency(fund.currentValue)}</p></div>
-        </div>
-        <div className="flex items-center gap-2">
-          {gainPositive
-            ? <Badge variant="success" className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />+{formatCurrency(fund.gainLoss)} ({fund.gainLossPercent.toFixed(2)}%)</Badge>
-            : <Badge variant="destructive" className="flex items-center gap-1"><TrendingDown className="h-3 w-3" />{formatCurrency(fund.gainLoss)} ({fund.gainLossPercent.toFixed(2)}%)</Badge>}
-        </div>
-        <div className="flex gap-2 pt-1">
-          <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setTxForm({ date: new Date().toISOString().split('T')[0], qty: '', cost: '' }); setAddTxOpen(true); }}>+ Compra</Button>
-          <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => { setValueForm({ date: new Date().toISOString().split('T')[0], value: '' }); setAddValueOpen(true); }}>+ Valor título</Button>
-          <Button size="sm" variant="ghost" className="text-xs" onClick={() => setExpanded(!expanded)}>
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          )}
+          {!isCompleted && (
+            <Button variant="outline" size="sm" onClick={() => { setValueForm({ date: new Date().toISOString().split('T')[0], value: '' }); setAddValueOpen(true); }}>
+              <Plus className="h-3.5 w-3.5 mr-1" />Valor título
+            </Button>
+          )}
+          {!isCompleted && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-emerald-600" title="Marcar como completado" onClick={() => onComplete(fund.id)}>
+              <CheckCircle className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={() => onDelete(fund.id)}>
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+      </div>
 
-        {expanded && (
-          <div className="pt-2 space-y-4 border-t border-gray-100">
-            <FundChart history={fund.titleHistory} />
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Títulos</p>
+            <p className="text-xl font-bold text-slate-900 tabular-nums">{fund.totalTitles.toFixed(4)}</p>
+            <p className="text-xs text-slate-400 mt-0.5">unidades</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Valor título</p>
+            <p className="text-xl font-bold text-slate-900 tabular-nums">${fund.currentTitleValue.toFixed(4)}</p>
+            <p className="text-xs text-slate-400 mt-0.5">precio actual</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Invertido</p>
+            <p className="text-xl font-bold text-slate-900 tabular-nums">{formatCurrency(fund.totalInvested)}</p>
+            <p className="text-xs text-slate-400 mt-0.5">costo de compras</p>
+          </CardContent>
+        </Card>
+        <Card className={gainPositive ? 'border-emerald-200' : 'border-red-200'}>
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Valor actual</p>
+            <p className="text-xl font-bold text-indigo-600 tabular-nums">{formatCurrency(fund.currentValue)}</p>
+            <p className={`text-xs mt-0.5 font-medium ${gainPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+              {gainPositive ? '+' : ''}{formatCurrency(fund.gainLoss)} ({fund.gainLossPercent.toFixed(2)}%)
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-            {/* Title value history */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 mb-2">Historial de valores de título</p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {fund.titleHistory.length === 0 ? <p className="text-xs text-gray-400">Sin historial</p> : fund.titleHistory.slice().reverse().map((v) => (
-                  <div key={v.id} className="flex items-center justify-between text-xs group">
-                    <span className="text-gray-500">{formatDate(v.date)}</span>
-                    <span className="font-medium text-gray-700">${v.titleValue.toFixed(6)}</span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditValue(v)} className="text-indigo-500 hover:text-indigo-700"><Pencil className="h-3 w-3" /></button>
-                      <button onClick={() => setConfirmValue(v.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Chart card */}
+      {fund.titleHistory.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 text-slate-400" />
+                Historial de valor por título
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-500" onClick={() => setChartOpen(!chartOpen)}>
+                {chartOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {chartOpen ? 'Ocultar' : 'Ver gráfica'}
+              </Button>
             </div>
+          </CardHeader>
+          {chartOpen && (
+            <CardContent>
+              <FundChart history={fund.titleHistory} />
+            </CardContent>
+          )}
+        </Card>
+      )}
 
-            {/* Transactions */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 mb-2">Historial de compras</p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {fund.transactions.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between text-xs group">
-                    <span className="text-gray-500">{formatDate(t.transactionDate)}</span>
-                    <span className="text-gray-600">{t.titlesQuantity.toFixed(4)} @ ${t.titleCost.toFixed(4)}</span>
-                    <span className="font-medium">{formatCurrency(t.totalAmount)}</span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditTx(t)} className="text-indigo-500 hover:text-indigo-700"><Pencil className="h-3 w-3" /></button>
-                      <button onClick={() => setConfirmTx(t.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Transactions table */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold text-slate-700">Historial de compras</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {sortedTx.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">Sin compras registradas</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left text-xs font-semibold text-slate-500 px-4 py-2.5">Fecha</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 px-4 py-2.5">Títulos</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 px-4 py-2.5">Precio/título</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 px-4 py-2.5">Total</th>
+                    <th className="px-4 py-2.5 w-16" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {sortedTx.map((t) => (
+                    <tr key={t.id} className="group hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 text-slate-600 text-xs">{formatDate(t.transactionDate)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-700">{t.titlesQuantity.toFixed(4)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-700">${t.titleCost.toFixed(6)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">{formatCurrency(t.totalAmount)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => openEditTx(t)} className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => setConfirmTx(t.id)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-slate-200 bg-slate-50">
+                    <td className="px-4 py-2.5 text-xs font-semibold text-slate-600" colSpan={3}>Total invertido</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-bold text-slate-900">{formatCurrency(fund.totalInvested)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          </div>
-        )}
-      </CardContent>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Add / Edit Transaction */}
+      {/* Title value history table */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold text-slate-700">Historial de valores de título</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {sortedHistory.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">Sin historial de valores</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left text-xs font-semibold text-slate-500 px-4 py-2.5">Fecha</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 px-4 py-2.5">Valor por título</th>
+                    <th className="px-4 py-2.5 w-16" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {sortedHistory.map((v) => (
+                    <tr key={v.id} className="group hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 text-slate-600 text-xs">{formatDate(v.date)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold text-indigo-600">${v.titleValue.toFixed(6)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => openEditValue(v)} className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => setConfirmValue(v.id)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add / Edit Transaction dialog */}
       <Dialog open={addTxOpen || !!editTx} onOpenChange={(o) => { if (!o) { setAddTxOpen(false); setEditTx(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{editTx ? 'Editar compra' : 'Nueva compra'} — {fund.name}</DialogTitle></DialogHeader>
@@ -190,7 +300,11 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
             <div className="grid gap-2"><Label>Fecha</Label><Input type="date" value={txForm.date} onChange={(e) => setTxForm((p) => ({ ...p, date: e.target.value }))} /></div>
             <div className="grid gap-2"><Label>Títulos</Label><Input type="number" step="0.0001" value={txForm.qty} onChange={(e) => setTxForm((p) => ({ ...p, qty: e.target.value }))} placeholder="1000" /></div>
             <div className="grid gap-2"><Label>Costo por título</Label><Input type="number" step="0.000001" value={txForm.cost} onChange={(e) => setTxForm((p) => ({ ...p, cost: e.target.value }))} placeholder="1.2345" /></div>
-            {txForm.qty && txForm.cost && <p className="text-sm text-gray-600">Total: {formatCurrency(parseFloat(txForm.qty) * parseFloat(txForm.cost))}</p>}
+            {txForm.qty && txForm.cost && (
+              <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-sm text-indigo-700">
+                Total: <span className="font-semibold">{formatCurrency(parseFloat(txForm.qty) * parseFloat(txForm.cost))}</span>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => { setAddTxOpen(false); setEditTx(null); }}>Cancelar</Button>
               <Button onClick={editTx ? saveEditTx : addTransaction} disabled={saving || !txForm.qty || !txForm.cost}>{saving ? 'Guardando...' : 'Guardar'}</Button>
@@ -199,7 +313,7 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
         </DialogContent>
       </Dialog>
 
-      {/* Add / Edit Title Value */}
+      {/* Add / Edit Title Value dialog */}
       <Dialog open={addValueOpen || !!editValue} onOpenChange={(o) => { if (!o) { setAddValueOpen(false); setEditValue(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{editValue ? 'Editar valor' : 'Nuevo valor de título'} — {fund.name}</DialogTitle></DialogHeader>
@@ -214,7 +328,6 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm delete transaction */}
       <ConfirmDialog
         open={!!confirmTx}
         title="¿Eliminar transacción?"
@@ -224,8 +337,6 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
         onConfirm={() => confirmTx && deleteTx(confirmTx)}
         onCancel={() => setConfirmTx(null)}
       />
-
-      {/* Confirm delete title value */}
       <ConfirmDialog
         open={!!confirmValue}
         title="¿Eliminar valor?"
@@ -235,11 +346,12 @@ function FundCard({ fund, onDelete, onRefresh, onComplete }: {
         onConfirm={() => confirmValue && deleteValue(confirmValue)}
         onCancel={() => setConfirmValue(null)}
       />
-    </Card>
+    </div>
   );
 }
 
 export default function FondosPage() {
+  const { isEnabled } = useFeatureFlags();
   const { userId } = useAuth();
   const { funds, loading, refresh } = useFunds(userId);
   const { toast } = useToast();
@@ -247,18 +359,17 @@ export default function FondosPage() {
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState<{ type: 'delete' | 'complete'; id: string } | null>(null);
 
+  if (!isEnabled('section_fondos')) {
+    return <SectionDisabled label="Fondos de inversión" />;
+  }
+
   const active = funds.filter((f) => f.status !== 'completed');
   const completed = funds.filter((f) => f.status === 'completed');
   const filterList = (list: typeof funds) =>
     search ? list.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())) : list;
 
-  function handleDelete(id: string) {
-    setConfirm({ type: 'delete', id });
-  }
-
-  function handleComplete(id: string) {
-    setConfirm({ type: 'complete', id });
-  }
+  function handleDelete(id: string) { setConfirm({ type: 'delete', id }); }
+  function handleComplete(id: string) { setConfirm({ type: 'complete', id }); }
 
   async function handleConfirm() {
     if (!confirm) return;
@@ -290,8 +401,14 @@ export default function FondosPage() {
     downloadCsv('fondos-inversion.csv', rows);
   }
 
+  const totalInvested = active.reduce((s, f) => s + f.totalInvested, 0);
+  const totalValue = active.reduce((s, f) => s + f.currentValue, 0);
+  const totalGain = totalValue - totalInvested;
+  const gainPositive = totalGain >= 0;
+
   return (
     <div className="space-y-6">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Fondos de inversión</h1>
@@ -302,69 +419,68 @@ export default function FondosPage() {
             <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-2" />Exportar</Button>
           )}
           <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Nuevo fondo</Button></DialogTrigger>
-          <DialogContent className="max-w-xl">
-            <DialogHeader><DialogTitle>Nuevo fondo de inversión</DialogTitle></DialogHeader>
-            {userId && <FundForm userId={userId} onSuccess={() => { setOpen(false); refresh(); toast('Fondo creado'); }} onCancel={() => setOpen(false)} />}
-          </DialogContent>
-        </Dialog>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Nuevo fondo</Button></DialogTrigger>
+            <DialogContent className="max-w-xl">
+              <DialogHeader><DialogTitle>Nuevo fondo de inversión</DialogTitle></DialogHeader>
+              {userId && <FundForm userId={userId} onSuccess={() => { setOpen(false); refresh(); toast('Fondo creado'); }} onCancel={() => setOpen(false)} />}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
-      {/* Summary cards */}
-      {funds.length > 0 && (() => {
-        const totalInvested = funds.filter(f => f.status !== 'completed').reduce((s, f) => s + f.totalInvested, 0);
-        const totalValue = funds.filter(f => f.status !== 'completed').reduce((s, f) => s + f.currentValue, 0);
-        const totalGain = totalValue - totalInvested;
-        const gainPositive = totalGain >= 0;
-        return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total invertido</p>
-                    <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalInvested)}</p>
-                    <p className="mt-1 text-xs text-slate-400">{active.length} fondo{active.length !== 1 ? 's' : ''} activo{active.length !== 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500">
-                    <Wallet className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Valor actual</p>
-                    <p className="mt-2 text-2xl font-bold text-indigo-600 tabular-nums">{formatCurrency(totalValue)}</p>
-                    <p className="mt-1 text-xs text-slate-400">Precio de mercado</p>
-                  </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500">
-                    <TrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className={gainPositive ? 'border-emerald-200' : 'border-red-200'}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Ganancia / Pérdida</p>
-                    <p className={`mt-2 text-2xl font-bold tabular-nums ${gainPositive ? 'text-emerald-600' : 'text-red-500'}`}>{gainPositive ? '+' : ''}{formatCurrency(totalGain)}</p>
-                    <p className="mt-1 text-xs text-slate-400">{totalInvested > 0 ? ((totalGain / totalInvested) * 100).toFixed(2) : '0.00'}% sobre invertido</p>
-                  </div>
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${gainPositive ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                    {gainPositive ? <TrendingUp className="h-5 w-5 text-white" /> : <TrendingDown className="h-5 w-5 text-white" />}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      })()}
 
-      {/* Rendimiento histórico */}
+      {/* Global summary cards */}
+      {funds.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total invertido</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalInvested)}</p>
+                  <p className="mt-1 text-xs text-slate-400">{active.length} fondo{active.length !== 1 ? 's' : ''} activo{active.length !== 1 ? 's' : ''}</p>
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500">
+                  <Wallet className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Valor actual</p>
+                  <p className="mt-2 text-2xl font-bold text-indigo-600 tabular-nums">{formatCurrency(totalValue)}</p>
+                  <p className="mt-1 text-xs text-slate-400">precio de mercado</p>
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={gainPositive ? 'border-emerald-200' : 'border-red-200'}>
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Ganancia / Pérdida</p>
+                  <p className={`mt-2 text-2xl font-bold tabular-nums ${gainPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {gainPositive ? '+' : ''}{formatCurrency(totalGain)}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {totalInvested > 0 ? ((totalGain / totalInvested) * 100).toFixed(2) : '0.00'}% sobre invertido
+                  </p>
+                </div>
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${gainPositive ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                  {gainPositive ? <TrendingUp className="h-5 w-5 text-white" /> : <TrendingDown className="h-5 w-5 text-white" />}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Performance chart */}
       {active.length > 0 && (
         <Card>
           <CardHeader>
@@ -376,6 +492,7 @@ export default function FondosPage() {
         </Card>
       )}
 
+      {/* Search */}
       {funds.length > 0 && (
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -383,30 +500,38 @@ export default function FondosPage() {
         </div>
       )}
 
+      {/* Fund sections */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <InvestmentCardSkeleton />
+        <div className="space-y-4">
           <InvestmentCardSkeleton />
           <InvestmentCardSkeleton />
         </div>
       ) : funds.length === 0 ? (
-        <Card><CardContent className="flex flex-col items-center justify-center py-16 text-center"><Wallet className="h-12 w-12 text-gray-300 mb-4" /><h3 className="font-semibold text-gray-600">Sin fondos</h3><p className="text-sm text-gray-400 mt-1">Agrega tu primer fondo de inversión</p></CardContent></Card>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <Wallet className="h-12 w-12 text-gray-300 mb-4" />
+            <h3 className="font-semibold text-gray-600">Sin fondos</h3>
+            <p className="text-sm text-gray-400 mt-1">Agrega tu primer fondo de inversión</p>
+          </CardContent>
+        </Card>
       ) : (
-        <>
-          {active.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {filterList(active).map((f) => <FundCard key={f.id} fund={f} onDelete={handleDelete} onRefresh={refresh} onComplete={handleComplete} />)}
-            </div>
-          )}
-          {completed.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Completados ({completed.length})</h2>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filterList(completed).map((f) => <FundCard key={f.id} fund={f} onDelete={handleDelete} onRefresh={refresh} onComplete={handleComplete} />)}
+        <div className="space-y-10">
+          {filterList(active).map((f) => (
+            <FundSection key={f.id} fund={f} onDelete={handleDelete} onRefresh={refresh} onComplete={handleComplete} />
+          ))}
+          {completed.length > 0 && filterList(completed).length > 0 && (
+            <>
+              <div className="relative flex items-center gap-3">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Completados ({completed.length})</span>
+                <div className="flex-1 h-px bg-slate-200" />
               </div>
-            </div>
+              {filterList(completed).map((f) => (
+                <FundSection key={f.id} fund={f} onDelete={handleDelete} onRefresh={refresh} onComplete={handleComplete} />
+              ))}
+            </>
           )}
-        </>
+        </div>
       )}
 
       <ConfirmDialog

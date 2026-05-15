@@ -5,6 +5,9 @@ import {
   FundTitleValue,
   LandPayment,
   LandInvestmentDetails,
+  AforeDetails,
+  AforeMovement,
+  AforeBalanceSnapshot,
 } from '../entities/investment.entity';
 
 export interface InvestmentRepository {
@@ -43,4 +46,19 @@ export interface LandRepository {
   createPayment(data: Omit<LandPayment, 'id'>): Promise<LandPayment>;
   updatePayment(id: string, data: Partial<LandPayment>): Promise<LandPayment>;
   deletePayment(id: string): Promise<void>;
+}
+
+export interface AforeRepository {
+  findDetailsByInvestmentId(investmentId: string): Promise<AforeDetails | null>;
+  createDetails(data: Omit<AforeDetails, 'id'>): Promise<AforeDetails>;
+  updateDetails(id: string, data: Partial<AforeDetails>): Promise<AforeDetails>;
+
+  findMovementsByAforeId(aforeId: string): Promise<AforeMovement[]>;
+  createMovement(data: Omit<AforeMovement, 'id'>): Promise<AforeMovement>;
+  updateMovement(id: string, data: Partial<AforeMovement>): Promise<AforeMovement>;
+  deleteMovement(id: string): Promise<void>;
+
+  findSnapshotsByAforeId(aforeId: string): Promise<AforeBalanceSnapshot[]>;
+  upsertSnapshot(data: Omit<AforeBalanceSnapshot, 'id' | 'balanceTotal'>): Promise<AforeBalanceSnapshot>;
+  deleteSnapshot(id: string): Promise<void>;
 }

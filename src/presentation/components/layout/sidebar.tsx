@@ -3,19 +3,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, TrendingUp, Building2, TreePine, Users,
-  LogOut, Wallet, UserCircle, X, Boxes, ChevronRight,
+  LogOut, Wallet, UserCircle, X, Boxes, ChevronRight, PiggyBank,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { createClient } from '../../../infrastructure/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useFeatureFlags } from '../../hooks/use-feature-flags';
 
-const navItems = [
-  { href: '/dashboard',           label: 'Dashboard',  icon: LayoutDashboard },
-  { href: '/dashboard/briq',      label: 'Briq',       icon: TrendingUp },
-  { href: '/dashboard/fondos',    label: 'Fondos',     icon: Wallet },
-  { href: '/dashboard/terrenos',  label: 'Terrenos',   icon: TreePine },
-  { href: '/dashboard/otros',     label: 'Otros',      icon: Boxes },
-  { href: '/dashboard/perfil',    label: 'Mi perfil',  icon: UserCircle },
+const ALL_NAV_ITEMS = [
+  { href: '/dashboard',           label: 'Dashboard',  icon: LayoutDashboard, flag: null },
+  { href: '/dashboard/briq',      label: 'Briq',       icon: TrendingUp,      flag: 'section_briq' },
+  { href: '/dashboard/fondos',    label: 'Fondos',     icon: Wallet,          flag: 'section_fondos' },
+  { href: '/dashboard/terrenos',  label: 'Terrenos',   icon: TreePine,        flag: 'section_terrenos' },
+  { href: '/dashboard/afore',     label: 'AFORE',      icon: PiggyBank,       flag: 'section_afore' },
+  { href: '/dashboard/otros',     label: 'Otros',      icon: Boxes,           flag: 'section_otros' },
+  { href: '/dashboard/perfil',    label: 'Mi perfil',  icon: UserCircle,      flag: null },
 ];
 
 const adminItems = [
@@ -31,6 +33,9 @@ interface SidebarProps {
 export function Sidebar({ isAdmin, userName, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isEnabled } = useFeatureFlags();
+
+  const navItems = ALL_NAV_ITEMS.filter((item) => item.flag === null || isEnabled(item.flag));
 
   async function handleSignOut() {
     const supabase = createClient();

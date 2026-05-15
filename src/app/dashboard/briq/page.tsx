@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, TrendingUp, ArrowUpRight, Trash2, Pencil, CheckCircle, Search, Download, AlertTriangle, Clock, Square, CheckSquare } from 'lucide-react';
+import { Plus, TrendingUp, ArrowUpRight, Trash2, Pencil, CheckCircle, Search, Download, AlertTriangle, Clock, Square, CheckSquare, LayoutGrid, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -126,6 +126,7 @@ export default function BriqPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const active = briqs.filter((b) => b.status !== 'completed');
   const completed = briqs.filter((b) => b.status === 'completed');
@@ -312,6 +313,26 @@ export default function BriqPage() {
             <Input placeholder="Buscar proyecto..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
+          {/* View toggle */}
+          <div className="flex rounded-xl border border-slate-200 overflow-hidden">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === 'card' ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              title="Vista tarjetas"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Tarjetas</span>
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === 'table' ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              title="Vista tabla"
+            >
+              <List className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Tabla</span>
+            </button>
+          </div>
+
           {/* Selection controls */}
           {selected.size === 0 ? (
             <Button variant="outline" size="sm" onClick={selectAll} className="text-slate-500">
@@ -355,6 +376,87 @@ export default function BriqPage() {
             <h3 className="font-semibold text-gray-600">Sin inversiones</h3>
             <p className="text-sm text-gray-400 mt-1">Agrega tu primera inversión Briq</p>
           </CardContent>
+        </Card>
+      ) : viewMode === 'table' ? (
+        <Card>
+          <div className="overflow-x-auto rounded-2xl">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="px-4 py-3 w-8">
+                    <button onClick={selected.size === briqs.length ? clearSelection : selectAll}>
+                      {selected.size === briqs.length
+                        ? <CheckSquare className="h-4 w-4 text-indigo-600" />
+                        : <Square className="h-4 w-4 text-slate-300" />}
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Proyecto</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-500">Capital</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-500">Tasa</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-500">Int. mensual</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-500">Int. anual</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Fecha</th>
+                  <th className="px-4 py-3 text-center font-semibold text-slate-500">Plazo</th>
+                  <th className="px-4 py-3 text-center font-semibold text-slate-500">Estado</th>
+                  <th className="px-4 py-3 w-24" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {[...filtered(active), ...filtered(completed)].map((b) => {
+                  const isCompleted = b.status === 'completed';
+                  return (
+                    <tr key={b.id} className={`transition-colors ${selected.has(b.id) ? 'bg-indigo-50/60' : isCompleted ? 'opacity-60 bg-white' : 'bg-white hover:bg-slate-50/60'}`}>
+                      <td className="px-4 py-3">
+                        <button onClick={() => toggleSelect(b.id)}>
+                          {selected.has(b.id)
+                            ? <CheckSquare className="h-4 w-4 text-indigo-600" />
+                            : <Square className="h-4 w-4 text-slate-300 hover:text-slate-500" />}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-900 leading-tight">{b.name}</div>
+                        {!isCompleted && b.briq.termMonths && (
+                          <ExpiryBadge investmentDate={b.briq.investmentDate} termMonths={b.briq.termMonths} />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">{formatCurrency(b.briq.investedAmount)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Badge variant="success" className="inline-flex items-center gap-1">
+                          <ArrowUpRight className="h-3 w-3" />{b.briq.annualInterestRate}%
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-indigo-600 font-semibold">{formatCurrency(b.monthlyInterest)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-emerald-600 font-semibold">{formatCurrency(b.annualInterest)}</td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(b.briq.investmentDate)}</td>
+                      <td className="px-4 py-3 text-center text-xs text-slate-500">{b.briq.termMonths ? `${b.briq.termMonths} m` : '—'}</td>
+                      <td className="px-4 py-3 text-center">
+                        {isCompleted
+                          ? <Badge variant="secondary">Completada</Badge>
+                          : <Badge variant="success">Activa</Badge>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {!isCompleted && (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600" onClick={() => setEditTarget(b)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" title="Marcar como completada" onClick={() => handleComplete(b.id)}>
+                                <CheckCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500" onClick={() => handleDelete(b.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       ) : (
         <>

@@ -3,6 +3,7 @@ import {
   BriqRepository,
   FundRepository,
   LandRepository,
+  AforeRepository,
 } from '../../domain/repositories/investment.repository';
 import {
   Investment,
@@ -10,10 +11,14 @@ import {
   BriqInvestmentWithDetails,
   FundInvestmentWithDetails,
   LandInvestmentWithDetails,
+  AforeInvestmentWithDetails,
   FundTransaction,
   FundTitleValue,
   LandPayment,
   LandInvestmentDetails,
+  AforeDetails,
+  AforeMovement,
+  AforeBalanceSnapshot,
 } from '../../domain/entities/investment.entity';
 import { InvestmentCalculatorService } from '../../domain/services/investment-calculator.service';
 
@@ -22,7 +27,8 @@ export class InvestmentUseCases {
     private investmentRepo: InvestmentRepository,
     private briqRepo: BriqRepository,
     private fundRepo: FundRepository,
-    private landRepo: LandRepository
+    private landRepo: LandRepository,
+    private aforeRepo: AforeRepository
   ) {}
 
   // ── Investments ──────────────────────────────────────────────
@@ -203,12 +209,74 @@ export class InvestmentUseCases {
     return results.filter(Boolean) as LandInvestmentWithDetails[];
   }
 
+  // ── AFORE ─────────────────────────────────────────────────────
+  async getAforeWithDetails(investmentId: string): Promise<AforeInvestmentWithDetails | null> {
+    const investment = await this.investmentRepo.findById(investmentId);
+    if (!investment) return null;
+    const details = await this.aforeRepo.findDetailsByInvestmentId(investmentId);
+    if (!details) return null;
+    const [movements, snapshots] = await Promise.all([
+      this.aforeRepo.findMovementsByAforeId(details.id),
+      this.aforeRepo.findSnapshotsByAforeId(details.id),
+    ]);
+    const calc = InvestmentCalculatorService.calcAforeTotals(movements, snapshots, details.nsr);
+    return { ...investment, details, movements, snapshots, ...calc };
+  }
+
+  async createAforeInvestment(
+    investmentData: Omit<Investment, 'id' | 'createdAt' | 'updatedAt'>,
+    detailsData: Omit<AforeDetails, 'id' | 'investmentId'>,
+    initialSnapshot?: Omit<AforeBalanceSnapshot, 'id' | 'aforeId' | 'balanceTotal'>
+  ): Promise<AforeInvestmentWithDetails> {
+    const investment = await this.investmentRepo.create({ ...investmentData, type: 'afore' });
+    const details = await this.aforeRepo.createDetails({ ...detailsData, investmentId: investment.id });
+    const snapshots: AforeBalanceSnapshot[] = [];
+    if (initialSnapshot) {
+      const s = await this.aforeRepo.upsertSnapshot({ ...initialSnapshot, aforeId: details.id });
+      snapshots.push(s);
+    }
+    const calc = InvestmentCalculatorService.calcAforeTotals([], snapshots, details.nsr);
+    return { ...investment, details, movements: [], snapshots, ...calc };
+  }
+
+  async updateAforeDetails(id: string, data: Partial<AforeDetails>): Promise<AforeDetails> {
+    return this.aforeRepo.updateDetails(id, data);
+  }
+
+  async addAforeMovement(aforeId: string, data: Omit<AforeMovement, 'id' | 'aforeId'>): Promise<AforeMovement> {
+    return this.aforeRepo.createMovement({ ...data, aforeId });
+  }
+
+  async updateAforeMovement(id: string, data: Partial<AforeMovement>): Promise<AforeMovement> {
+    return this.aforeRepo.updateMovement(id, data);
+  }
+
+  async deleteAforeMovement(id: string): Promise<void> {
+    return this.aforeRepo.deleteMovement(id);
+  }
+
+  async upsertAforeSnapshot(aforeId: string, data: Omit<AforeBalanceSnapshot, 'id' | 'aforeId' | 'balanceTotal'>): Promise<AforeBalanceSnapshot> {
+    return this.aforeRepo.upsertSnapshot({ ...data, aforeId });
+  }
+
+  async deleteAforeSnapshot(id: string): Promise<void> {
+    return this.aforeRepo.deleteSnapshot(id);
+  }
+
+  async getAllAforesForUser(userId: string): Promise<AforeInvestmentWithDetails[]> {
+    const investments = await this.investmentRepo.findByUserId(userId);
+    const afores = investments.filter((i) => i.type === 'afore');
+    const results = await Promise.all(afores.map((i) => this.getAforeWithDetails(i.id)));
+    return results.filter(Boolean) as AforeInvestmentWithDetails[];
+  }
+
   // ── Dashboard summary ─────────────────────────────────────────
   async getDashboardSummary(userId: string) {
-    const [briqs, funds, lands] = await Promise.all([
+    const [briqs, funds, lands, afores] = await Promise.all([
       this.getAllBriqsForUser(userId),
       this.getAllFundsForUser(userId),
       this.getAllLandsForUser(userId),
+      this.getAllAforesForUser(userId),
     ]);
 
     const briqSummary = InvestmentCalculatorService.calcPortfolioSummary(
@@ -217,17 +285,26 @@ export class InvestmentUseCases {
 
     const totalFundValue = funds.reduce((s, f) => s + f.currentValue, 0);
     const totalFundInvested = funds.reduce((s, f) => s + f.totalInvested, 0);
+    const totalFundGain = totalFundValue - totalFundInvested;
     const totalLandPaid = lands.reduce((s, l) => s + l.totalPaid, 0);
+    const totalAforeBalance = afores.reduce((s, a) => s + (a.currentBalance ?? 0), 0);
+    const totalAforeRetiro = afores.reduce((s, a) => s + (a.currentBalanceRetiro ?? 0), 0);
+    const totalAforeVivienda = afores.reduce((s, a) => s + (a.currentBalanceVivienda ?? 0), 0);
 
     return {
       briqs,
       funds,
       lands,
+      afores,
       briqSummary,
       totalFundValue,
       totalFundInvested,
+      totalFundGain,
       totalLandPaid,
-      grandTotalInvested: briqSummary.totalCapital + totalFundInvested + totalLandPaid,
+      totalAforeBalance,
+      totalAforeRetiro,
+      totalAforeVivienda,
+      grandTotalInvested: briqSummary.totalCapital + totalFundInvested + totalLandPaid + totalAforeBalance,
     };
   }
 }
