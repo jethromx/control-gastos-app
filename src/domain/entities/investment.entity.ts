@@ -1,4 +1,4 @@
-export type InvestmentType = 'briq' | 'fund' | 'land' | 'custom' | 'afore';
+export type InvestmentType = 'briq' | 'fund' | 'land' | 'custom' | 'afore' | 'mortgage';
 export type InvestmentStatus = 'active' | 'completed' | 'cancelled';
 
 export interface Investment {
@@ -125,4 +125,40 @@ export interface AforeInvestmentWithDetails extends Investment {
   currentBalance: number;
   projectedMonthlyReturn: number;
   projectedAnnualReturn: number;
+}
+
+// Mortgage
+export interface MortgageDetails {
+  id: string;
+  investmentId: string;
+  bank: string;
+  originalAmount: number;
+  interestRate: number;   // annual %
+  termMonths: number;
+  startDate: Date;
+  monthlyPayment: number;
+  propertyValue?: number;
+  accountNumber?: string;
+}
+
+export interface MortgagePayment {
+  id: string;
+  mortgageId: string;
+  paymentDate: Date;
+  amount: number;
+  principal: number;
+  interest: number;
+  balance?: number;       // saldo insoluto after this payment
+  paymentNumber?: number;
+  notes?: string;
+}
+
+export interface MortgageInvestmentWithDetails extends Investment {
+  details: MortgageDetails;
+  payments: MortgagePayment[];
+  totalPaid: number;
+  totalPrincipalPaid: number;
+  totalInterestPaid: number;
+  currentBalance: number;
+  completionPercent: number;
 }

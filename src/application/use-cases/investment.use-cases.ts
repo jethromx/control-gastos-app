@@ -4,6 +4,7 @@ import {
   FundRepository,
   LandRepository,
   AforeRepository,
+  MortgageRepository,
 } from '../../domain/repositories/investment.repository';
 import {
   Investment,
@@ -12,6 +13,9 @@ import {
   FundInvestmentWithDetails,
   LandInvestmentWithDetails,
   AforeInvestmentWithDetails,
+  MortgageInvestmentWithDetails,
+  MortgageDetails,
+  MortgagePayment,
   FundTransaction,
   FundTitleValue,
   LandPayment,
@@ -28,7 +32,8 @@ export class InvestmentUseCases {
     private briqRepo: BriqRepository,
     private fundRepo: FundRepository,
     private landRepo: LandRepository,
-    private aforeRepo: AforeRepository
+    private aforeRepo: AforeRepository,
+    private mortgageRepo: MortgageRepository
   ) {}
 
   // ── Investments ──────────────────────────────────────────────
@@ -270,13 +275,57 @@ export class InvestmentUseCases {
     return results.filter(Boolean) as AforeInvestmentWithDetails[];
   }
 
+  // ── Mortgage ──────────────────────────────────────────────────
+  async getMortgageWithDetails(investmentId: string): Promise<MortgageInvestmentWithDetails | null> {
+    const investment = await this.investmentRepo.findById(investmentId);
+    if (!investment) return null;
+    const details = await this.mortgageRepo.findDetailsByInvestmentId(investmentId);
+    if (!details) return null;
+    const payments = await this.mortgageRepo.findPaymentsByMortgageId(details.id);
+    const totals = InvestmentCalculatorService.calcMortgageTotals(details, payments);
+    return { ...investment, details, payments, ...totals };
+  }
+
+  async createMortgage(
+    investmentData: Omit<Investment, 'id' | 'createdAt' | 'updatedAt'>,
+    detailsData: Omit<MortgageDetails, 'id' | 'investmentId'>
+  ): Promise<MortgageInvestmentWithDetails> {
+    const investment = await this.investmentRepo.create({ ...investmentData, type: 'mortgage' });
+    const details = await this.mortgageRepo.createDetails({ ...detailsData, investmentId: investment.id });
+    return { ...investment, details, payments: [], totalPaid: 0, totalPrincipalPaid: 0, totalInterestPaid: 0, currentBalance: details.originalAmount, completionPercent: 0 };
+  }
+
+  async updateMortgageDetails(id: string, data: Partial<Omit<MortgageDetails, 'id' | 'investmentId'>>): Promise<MortgageDetails> {
+    return this.mortgageRepo.updateDetails(id, data);
+  }
+
+  async addMortgagePayment(mortgageId: string, data: Omit<MortgagePayment, 'id' | 'mortgageId'>): Promise<MortgagePayment> {
+    return this.mortgageRepo.createPayment({ ...data, mortgageId });
+  }
+
+  async updateMortgagePayment(id: string, data: Partial<Omit<MortgagePayment, 'id' | 'mortgageId'>>): Promise<MortgagePayment> {
+    return this.mortgageRepo.updatePayment(id, data);
+  }
+
+  async deleteMortgagePayment(id: string): Promise<void> {
+    return this.mortgageRepo.deletePayment(id);
+  }
+
+  async getAllMortgagesForUser(userId: string): Promise<MortgageInvestmentWithDetails[]> {
+    const investments = await this.investmentRepo.findByUserId(userId);
+    const mortgages = investments.filter((i) => i.type === 'mortgage');
+    const results = await Promise.all(mortgages.map((i) => this.getMortgageWithDetails(i.id)));
+    return results.filter(Boolean) as MortgageInvestmentWithDetails[];
+  }
+
   // ── Dashboard summary ─────────────────────────────────────────
   async getDashboardSummary(userId: string) {
-    const [briqs, funds, lands, afores] = await Promise.all([
+    const [briqs, funds, lands, afores, mortgages] = await Promise.all([
       this.getAllBriqsForUser(userId),
       this.getAllFundsForUser(userId),
       this.getAllLandsForUser(userId),
       this.getAllAforesForUser(userId),
+      this.getAllMortgagesForUser(userId),
     ]);
 
     const briqSummary = InvestmentCalculatorService.calcPortfolioSummary(
@@ -291,11 +340,15 @@ export class InvestmentUseCases {
     const totalAforeRetiro = afores.reduce((s, a) => s + (a.currentBalanceRetiro ?? 0), 0);
     const totalAforeVivienda = afores.reduce((s, a) => s + (a.currentBalanceVivienda ?? 0), 0);
 
+    const totalMortgagePaid = mortgages.reduce((s, m) => s + m.totalPaid, 0);
+    const totalMortgageBalance = mortgages.reduce((s, m) => s + m.currentBalance, 0);
+
     return {
       briqs,
       funds,
       lands,
       afores,
+      mortgages,
       briqSummary,
       totalFundValue,
       totalFundInvested,
@@ -304,6 +357,8 @@ export class InvestmentUseCases {
       totalAforeBalance,
       totalAforeRetiro,
       totalAforeVivienda,
+      totalMortgagePaid,
+      totalMortgageBalance,
       grandTotalInvested: briqSummary.totalCapital + totalFundInvested + totalLandPaid + totalAforeBalance,
     };
   }

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, TrendingUp, Building2, TreePine, Users,
-  LogOut, Wallet, UserCircle, X, Boxes, ChevronRight, PiggyBank,
+  LogOut, Wallet, UserCircle, X, Boxes, ChevronRight, PiggyBank, Home,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { createClient } from '../../../infrastructure/supabase/client';
@@ -16,6 +16,7 @@ const ALL_NAV_ITEMS = [
   { href: '/dashboard/fondos',    label: 'Fondos',     icon: Wallet,          flag: 'section_fondos' },
   { href: '/dashboard/terrenos',  label: 'Terrenos',   icon: TreePine,        flag: 'section_terrenos' },
   { href: '/dashboard/afore',     label: 'AFORE',      icon: PiggyBank,       flag: 'section_afore' },
+  { href: '/dashboard/hipoteca',  label: 'Hipoteca',   icon: Home,            flag: 'section_hipoteca' },
   { href: '/dashboard/otros',     label: 'Otros',      icon: Boxes,           flag: 'section_otros' },
   { href: '/dashboard/perfil',    label: 'Mi perfil',  icon: UserCircle,      flag: null },
 ];

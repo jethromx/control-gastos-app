@@ -6,5 +6,6 @@ export const queryKeys = {
   funds:       (userId: string) => ['funds',        userId] as const,
   lands:       (userId: string) => ['lands',        userId] as const,
   afores:      (userId: string) => ['afores',       userId] as const,
+  mortgages:   (userId: string) => ['mortgages',    userId] as const,
   featureFlags:               () => ['feature-flags']       as const,
 } as const;

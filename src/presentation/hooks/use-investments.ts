@@ -78,3 +78,16 @@ export function useAfores(userId: string | undefined) {
   const refresh = useCallback(() => invalidate(key), [invalidate, key]);
   return { afores, loading: isLoading, refresh };
 }
+
+// ── mortgages ────────────────────────────────────────────────────
+export function useMortgages(userId: string | undefined) {
+  const invalidate = useCrossInvalidate(userId);
+  const key = queryKeys.mortgages(userId ?? '');
+  const { data: mortgages = [], isLoading } = useQuery({
+    queryKey: key,
+    queryFn:  () => getInvestmentUseCases().getAllMortgagesForUser(userId!),
+    enabled:  !!userId,
+  });
+  const refresh = useCallback(() => invalidate(key), [invalidate, key]);
+  return { mortgages, loading: isLoading, refresh };
+}

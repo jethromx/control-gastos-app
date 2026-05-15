@@ -1,4 +1,4 @@
-import { BriqInvestment, FundTransaction, FundTitleValue, LandPayment, AforeMovement, AforeBalanceSnapshot } from '../entities/investment.entity';
+import { BriqInvestment, FundTransaction, FundTitleValue, LandPayment, AforeMovement, AforeBalanceSnapshot, MortgageDetails, MortgagePayment } from '../entities/investment.entity';
 
 export class InvestmentCalculatorService {
   static calcBriqMonthlyInterest(briq: BriqInvestment): number {
@@ -63,6 +63,40 @@ export class InvestmentCalculatorService {
     const projectedMonthlyReturn = projectedAnnualReturn / 12;
 
     return { totalContributed, currentBalance, currentBalanceRetiro, currentBalanceVivienda, projectedAnnualReturn, projectedMonthlyReturn };
+  }
+
+  static calcMortgageTotals(details: MortgageDetails, payments: MortgagePayment[]) {
+    const sorted = [...payments].sort(
+      (a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
+    );
+    const totalPaid = sorted.reduce((s, p) => s + p.amount, 0);
+    const totalPrincipalPaid = sorted.reduce((s, p) => s + p.principal, 0);
+    const totalInterestPaid = sorted.reduce((s, p) => s + p.interest, 0);
+    const lastWithBalance = [...sorted].reverse().find((p) => p.balance != null);
+    const currentBalance = lastWithBalance?.balance != null
+      ? lastWithBalance.balance
+      : Math.max(0, details.originalAmount - totalPrincipalPaid);
+    const completionPercent = details.originalAmount > 0
+      ? Math.min(100, (totalPrincipalPaid / details.originalAmount) * 100)
+      : 0;
+    return { totalPaid, totalPrincipalPaid, totalInterestPaid, currentBalance, completionPercent };
+  }
+
+  // French amortization schedule (tabla de amortización estándar mexicana)
+  static calcAmortizationSchedule(originalAmount: number, annualRate: number, termMonths: number, startDate: Date) {
+    const r = annualRate / 100 / 12;
+    const payment = r === 0
+      ? originalAmount / termMonths
+      : (originalAmount * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
+    let balance = originalAmount;
+    return Array.from({ length: termMonths }, (_, i) => {
+      const interest = balance * r;
+      const principal = Math.min(payment - interest, balance);
+      balance = Math.max(0, balance - principal);
+      const date = new Date(startDate);
+      date.setMonth(date.getMonth() + i + 1);
+      return { month: i + 1, date, interest, principal, balance, payment };
+    });
   }
 
   static calcPortfolioSummary(briqs: Array<{ amount: number; monthlyInterest: number; annualInterest: number }>) {

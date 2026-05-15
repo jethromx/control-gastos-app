@@ -10,6 +10,8 @@ import {
   AforeDetails,
   AforeMovement,
   AforeBalanceSnapshot,
+  MortgageDetails,
+  MortgagePayment,
 } from '../../domain/entities/investment.entity';
 import {
   InvestmentRepository,
@@ -17,6 +19,7 @@ import {
   FundRepository,
   LandRepository,
   AforeRepository,
+  MortgageRepository,
 } from '../../domain/repositories/investment.repository';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -512,5 +515,140 @@ export class SupabaseAforeRepository implements AforeRepository {
 
   async deleteSnapshot(id: string): Promise<void> {
     await this.supabase.from('afore_balance_snapshots').delete().eq('id', id);
+  }
+}
+
+// ── Mappers ────────────────────────────────────────────────────────────────
+function mapMortgageDetails(row: Row): MortgageDetails {
+  return {
+    id: row.id,
+    investmentId: row.investment_id,
+    bank: row.bank,
+    originalAmount: Number(row.original_amount),
+    interestRate: Number(row.interest_rate),
+    termMonths: Number(row.term_months),
+    startDate: new Date(row.start_date),
+    monthlyPayment: Number(row.monthly_payment),
+    propertyValue: row.property_value != null ? Number(row.property_value) : undefined,
+    accountNumber: row.account_number ?? undefined,
+  };
+}
+
+function mapMortgagePayment(row: Row): MortgagePayment {
+  return {
+    id: row.id,
+    mortgageId: row.mortgage_id,
+    paymentDate: new Date(row.payment_date),
+    amount: Number(row.amount),
+    principal: Number(row.principal),
+    interest: Number(row.interest),
+    balance: row.balance != null ? Number(row.balance) : undefined,
+    paymentNumber: row.payment_number ?? undefined,
+    notes: row.notes ?? undefined,
+  };
+}
+
+export class SupabaseMortgageRepository implements MortgageRepository {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(private supabase: SupabaseClient<any>) {}
+
+  async findDetailsByInvestmentId(investmentId: string): Promise<MortgageDetails | null> {
+    const { data } = await this.supabase
+      .from('mortgage_details')
+      .select('*')
+      .eq('investment_id', investmentId)
+      .single();
+    return data ? mapMortgageDetails(data) : null;
+  }
+
+  async createDetails(data: Omit<MortgageDetails, 'id'>): Promise<MortgageDetails> {
+    const { data: row, error } = await this.supabase
+      .from('mortgage_details')
+      .insert({
+        investment_id: data.investmentId,
+        bank: data.bank,
+        original_amount: data.originalAmount,
+        interest_rate: data.interestRate,
+        term_months: data.termMonths,
+        start_date: data.startDate.toISOString().split('T')[0],
+        monthly_payment: data.monthlyPayment,
+        property_value: data.propertyValue ?? null,
+        account_number: data.accountNumber ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapMortgageDetails(row);
+  }
+
+  async updateDetails(id: string, data: Partial<Omit<MortgageDetails, 'id' | 'investmentId'>>): Promise<MortgageDetails> {
+    const u: Row = {};
+    if (data.bank !== undefined) u.bank = data.bank;
+    if (data.originalAmount !== undefined) u.original_amount = data.originalAmount;
+    if (data.interestRate !== undefined) u.interest_rate = data.interestRate;
+    if (data.termMonths !== undefined) u.term_months = data.termMonths;
+    if (data.startDate !== undefined) u.start_date = data.startDate.toISOString().split('T')[0];
+    if (data.monthlyPayment !== undefined) u.monthly_payment = data.monthlyPayment;
+    if (data.propertyValue !== undefined) u.property_value = data.propertyValue;
+    if (data.accountNumber !== undefined) u.account_number = data.accountNumber;
+    const { data: row, error } = await this.supabase
+      .from('mortgage_details')
+      .update(u)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapMortgageDetails(row);
+  }
+
+  async findPaymentsByMortgageId(mortgageId: string): Promise<MortgagePayment[]> {
+    const { data } = await this.supabase
+      .from('mortgage_payments')
+      .select('*')
+      .eq('mortgage_id', mortgageId)
+      .order('payment_date', { ascending: true });
+    return (data ?? []).map(mapMortgagePayment);
+  }
+
+  async createPayment(data: Omit<MortgagePayment, 'id'>): Promise<MortgagePayment> {
+    const { data: row, error } = await this.supabase
+      .from('mortgage_payments')
+      .insert({
+        mortgage_id: data.mortgageId,
+        payment_date: data.paymentDate.toISOString().split('T')[0],
+        amount: data.amount,
+        principal: data.principal,
+        interest: data.interest,
+        balance: data.balance ?? null,
+        payment_number: data.paymentNumber ?? null,
+        notes: data.notes ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapMortgagePayment(row);
+  }
+
+  async updatePayment(id: string, data: Partial<Omit<MortgagePayment, 'id' | 'mortgageId'>>): Promise<MortgagePayment> {
+    const u: Row = {};
+    if (data.paymentDate !== undefined) u.payment_date = data.paymentDate.toISOString().split('T')[0];
+    if (data.amount !== undefined) u.amount = data.amount;
+    if (data.principal !== undefined) u.principal = data.principal;
+    if (data.interest !== undefined) u.interest = data.interest;
+    if (data.balance !== undefined) u.balance = data.balance;
+    if (data.paymentNumber !== undefined) u.payment_number = data.paymentNumber;
+    if (data.notes !== undefined) u.notes = data.notes;
+    const { data: row, error } = await this.supabase
+      .from('mortgage_payments')
+      .update(u)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapMortgagePayment(row);
+  }
+
+  async deletePayment(id: string): Promise<void> {
+    await this.supabase.from('mortgage_payments').delete().eq('id', id);
   }
 }

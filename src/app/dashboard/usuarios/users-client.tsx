@@ -22,11 +22,12 @@ interface Props {
 }
 
 const SECTION_FLAGS = [
-  { key: 'section_briq',     label: 'Briq',             description: 'Inversiones con tasa fija' },
-  { key: 'section_fondos',   label: 'Fondos',            description: 'Fondos de inversión' },
-  { key: 'section_terrenos', label: 'Terrenos',          description: 'Compra de terrenos' },
-  { key: 'section_afore',    label: 'AFORE',             description: 'Fondos para el retiro' },
-  { key: 'section_otros',    label: 'Otros proyectos',   description: 'Inversiones personalizadas' },
+  { key: 'section_briq',      label: 'Briq',             description: 'Inversiones con tasa fija' },
+  { key: 'section_fondos',    label: 'Fondos',            description: 'Fondos de inversión' },
+  { key: 'section_terrenos',  label: 'Terrenos',          description: 'Compra de terrenos' },
+  { key: 'section_afore',     label: 'AFORE',             description: 'Fondos para el retiro' },
+  { key: 'section_hipoteca',  label: 'Hipoteca',          description: 'Crédito hipotecario' },
+  { key: 'section_otros',     label: 'Otros proyectos',   description: 'Inversiones personalizadas' },
 ];
 
 export function UsersClient({ initialUsers, currentUserId, investmentStats }: Props) {

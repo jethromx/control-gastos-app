@@ -8,6 +8,8 @@ import {
   AforeDetails,
   AforeMovement,
   AforeBalanceSnapshot,
+  MortgageDetails,
+  MortgagePayment,
 } from '../entities/investment.entity';
 
 export interface InvestmentRepository {
@@ -61,4 +63,15 @@ export interface AforeRepository {
   findSnapshotsByAforeId(aforeId: string): Promise<AforeBalanceSnapshot[]>;
   upsertSnapshot(data: Omit<AforeBalanceSnapshot, 'id' | 'balanceTotal'>): Promise<AforeBalanceSnapshot>;
   deleteSnapshot(id: string): Promise<void>;
+}
+
+export interface MortgageRepository {
+  findDetailsByInvestmentId(investmentId: string): Promise<MortgageDetails | null>;
+  createDetails(data: Omit<MortgageDetails, 'id'>): Promise<MortgageDetails>;
+  updateDetails(id: string, data: Partial<Omit<MortgageDetails, 'id' | 'investmentId'>>): Promise<MortgageDetails>;
+
+  findPaymentsByMortgageId(mortgageId: string): Promise<MortgagePayment[]>;
+  createPayment(data: Omit<MortgagePayment, 'id'>): Promise<MortgagePayment>;
+  updatePayment(id: string, data: Partial<Omit<MortgagePayment, 'id' | 'mortgageId'>>): Promise<MortgagePayment>;
+  deletePayment(id: string): Promise<void>;
 }
