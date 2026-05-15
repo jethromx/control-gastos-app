@@ -18,11 +18,14 @@ function shortDate(d: Date) {
 
 export function MortgageAmortizationChart({ details, payments }: Props) {
   const chartData = useMemo(() => {
-    const schedule = InvestmentCalculatorService.calcAmortizationSchedule(
+    const extraPayments = payments.filter((p) => p.paymentNumber == null);
+    const schedule = InvestmentCalculatorService.calcDynamicAmortizationSchedule(
       details.originalAmount,
       details.interestRate,
       details.termMonths,
-      details.startDate
+      details.startDate,
+      extraPayments,
+      details.monthlyPayment,
     );
 
     // Map actual payments (with balance) keyed by year-month

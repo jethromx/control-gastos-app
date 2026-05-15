@@ -84,19 +84,55 @@ export class InvestmentCalculatorService {
 
   // French amortization schedule (tabla de amortización estándar mexicana)
   static calcAmortizationSchedule(originalAmount: number, annualRate: number, termMonths: number, startDate: Date) {
+    return InvestmentCalculatorService.calcDynamicAmortizationSchedule(
+      originalAmount, annualRate, termMonths, startDate, []
+    );
+  }
+
+  // Recalculates the schedule applying extra capital payments on their dates.
+  // Monthly payment stays fixed; extra capital reduces the balance early, shortening the term.
+  // Pass fixedMonthlyPayment to use the stored value instead of recalculating (avoids rounding drift).
+  static calcDynamicAmortizationSchedule(
+    originalAmount: number,
+    annualRate: number,
+    termMonths: number,
+    startDate: Date,
+    extraPayments: Array<{ paymentDate: Date | string; principal: number }>,
+    fixedMonthlyPayment?: number,
+  ) {
     const r = annualRate / 100 / 12;
-    const payment = r === 0
+    const payment = fixedMonthlyPayment ?? (r === 0
       ? originalAmount / termMonths
-      : (originalAmount * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
+      : (originalAmount * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1));
+
+    const extras = [...extraPayments]
+      .map((p) => ({ date: new Date(p.paymentDate).getTime(), amount: p.principal }))
+      .sort((a, b) => a.date - b.date);
+
     let balance = originalAmount;
-    return Array.from({ length: termMonths }, (_, i) => {
+    let extraIdx = 0;
+    const schedule: Array<{ month: number; date: Date; interest: number; principal: number; balance: number; payment: number }> = [];
+
+    for (let i = 0; i < termMonths * 2 && balance > 0.01; i++) {
+      const date = new Date(startDate);
+      date.setMonth(date.getMonth() + i + 1);
+      const dateMs = date.getTime();
+
+      // Apply extra capital payments that occurred before this month's payment date
+      while (extraIdx < extras.length && extras[extraIdx].date < dateMs) {
+        balance = Math.max(0, balance - extras[extraIdx].amount);
+        extraIdx++;
+        if (balance <= 0.01) break;
+      }
+      if (balance <= 0.01) break;
+
       const interest = balance * r;
       const principal = Math.min(payment - interest, balance);
       balance = Math.max(0, balance - principal);
-      const date = new Date(startDate);
-      date.setMonth(date.getMonth() + i + 1);
-      return { month: i + 1, date, interest, principal, balance, payment };
-    });
+      schedule.push({ month: i + 1, date, interest, principal, balance, payment });
+    }
+
+    return schedule;
   }
 
   static calcPortfolioSummary(briqs: Array<{ amount: number; monthlyInterest: number; annualInterest: number }>) {
