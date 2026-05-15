@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Users, Shield, User, Trash2, UserPlus, TrendingUp, Settings } from 'lucide-react';
-import { useFeatureFlags, setFeatureFlag } from '../../../presentation/hooks/use-feature-flags';
+import { useFeatureFlags, setFeatureFlag, useInvalidateFeatureFlags } from '../../../presentation/hooks/use-feature-flags';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../presentation/components/ui/card';
 import { Button } from '../../../presentation/components/ui/button';
 import { Badge } from '../../../presentation/components/ui/badge';
@@ -33,6 +33,7 @@ export function UsersClient({ initialUsers, currentUserId, investmentStats }: Pr
   const [users, setUsers] = useState(initialUsers);
   const [saving, setSaving] = useState<string | null>(null);
   const { flags, isEnabled } = useFeatureFlags();
+  const invalidateFlags = useInvalidateFeatureFlags();
   const [flagSaving, setFlagSaving] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -65,6 +66,7 @@ export function UsersClient({ initialUsers, currentUserId, investmentStats }: Pr
   async function handleToggleFlag(key: string, current: boolean) {
     setFlagSaving(key);
     await setFeatureFlag(key, !current);
+    invalidateFlags();
     setFlagSaving(null);
   }
 
